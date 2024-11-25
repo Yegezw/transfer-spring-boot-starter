@@ -40,6 +40,7 @@ public class TransferAutoConfiguration
         for (Transfer transfer : transferList)
         {
             transfer.setDisruptor(disruptor.getRingBuffer());
+            transfer.setDispatcher(dispatcher);
         }
 
         // 保存者

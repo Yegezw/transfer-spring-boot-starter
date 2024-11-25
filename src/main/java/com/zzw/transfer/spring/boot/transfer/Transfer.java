@@ -9,6 +9,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 转移器: 生产 -> 处理 -> 保存
@@ -18,11 +19,19 @@ public abstract class Transfer<S, T>
 
     private static final Logger log = LoggerFactory.getLogger(Transfer.class);
 
+    private final AtomicBoolean started = new AtomicBoolean(false);
+
     private RingBuffer<Bucket> ringBuffer;
+    private Dispatcher         dispatcher;
 
     public void setDisruptor(RingBuffer<Bucket> ringBuffer)
     {
         this.ringBuffer = ringBuffer;
+    }
+
+    public void setDispatcher(Dispatcher dispatcher)
+    {
+        this.dispatcher = dispatcher;
     }
 
     protected abstract Object getMark();
@@ -32,6 +41,9 @@ public abstract class Transfer<S, T>
     @Transactional(readOnly = true)
     public void start() throws IOException
     {
+        if (started.compareAndSet(false, true)) dispatcher.start(getMark());
+        else throw new RuntimeException(getMark() + " 已启动, 不可重复启动");
+
         int bucketSize = getBucketSize();
 
         Iterable<S>  all        = getDate();
@@ -52,6 +64,7 @@ public abstract class Transfer<S, T>
         // 但我不相信 MESI 的同步速度会比 MySQL 的写入速度还慢, 那真是太离谱了
         // 我甚至觉得 volatile 更新 lastPublish 都没有必要, 但由于每个数据流只设置一次, 并不会有太大损耗, 还是加上吧
         if (lastBucket != null) lastBucket.setLastPublish();
+        started.set(false);
         if (all instanceof Closeable c) c.close();
     }
 

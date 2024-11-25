@@ -22,9 +22,10 @@ public class SaverMonitor implements EventHandler<Bucket>
         dispatcher.updateCount(bucket);
         if (bucket.isLastPublish())
         {
+            double time = dispatcher.stop(bucket);
             if (log.isInfoEnabled())
             {
-                log.info("{} 累计 {} 条数据同步完成", bucket.getMark(), dispatcher.getCount(bucket));
+                log.info("{} 累计 {} 条数据同步完成, 耗时 {} s", bucket.getMark(), dispatcher.getCount(bucket), time);
             }
             dispatcher.resetCount(bucket);
         }
