@@ -34,23 +34,28 @@ public abstract class Transfer<S, T>
     {
         int bucketSize = getBucketSize();
 
-        Iterable<S>  all  = getDate();
-        ArrayList<S> data = new ArrayList<>();
+        Iterable<S>  all        = getDate();
+        ArrayList<S> data       = new ArrayList<>();
+        Bucket       lastBucket = null;
         for (S source : all)
         {
             data.add(source);
             if (data.size() == bucketSize)
             {
-                publish(data);
-                data = new ArrayList<>(bucketSize);
+                lastBucket = publish(data);
+                data       = new ArrayList<>(bucketSize);
             }
         }
-        if (!data.isEmpty()) publish(data);
+        if (!data.isEmpty()) lastBucket = publish(data);
 
+        // 虽然是发布完成后才 volatile 设置 lastPublish = ture
+        // 但我不相信 MESI 的同步速度会比 MySQL 的写入速度还慢, 那真是太离谱了
+        // 我甚至觉得 volatile 更新 lastPublish 都没有必要, 但由于每个数据流只设置一次, 并不会有太大损耗, 还是加上吧
+        if (lastBucket != null) lastBucket.setLastPublish();
         if (all instanceof Closeable c) c.close();
     }
 
-    private void publish(List<S> data)
+    private Bucket publish(List<S> data)
     {
         final long   sequence = ringBuffer.next();
         final Bucket bucket   = ringBuffer.get(sequence);
@@ -62,6 +67,7 @@ public abstract class Transfer<S, T>
             {
                 log.info("{} 发布数据 {} 条", getMark(), data.size());
             }
+            return bucket;
         }
         finally
         {
@@ -124,15 +130,11 @@ public abstract class Transfer<S, T>
     @SuppressWarnings("all")
     final void save(Bucket bucket)
     {
-        if (this.getMark() == bucket.getMark())
+        List data = bucket.getData();
+        int  rows = doSave(data);
+        if (log.isInfoEnabled())
         {
-            List data = bucket.getData();
-            int  rows = doSave(data);
-            if (log.isInfoEnabled())
-            {
-                log.info("{} 保存数据 {} 条", getMark(), rows);
-            }
-            bucket.clear(); // help gc
+            log.info("{} 保存数据 {} 条", getMark(), rows);
         }
     }
 
