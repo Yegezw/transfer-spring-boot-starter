@@ -27,7 +27,7 @@ public class TransferThreadFactory implements ThreadFactory
                 {
                     thread.setName("数据同步-单线程处理-" + count.getAndAdd(1));
                 }
-                else if (eventHandler.getClass() == SaverMonitor.class)
+                else if (eventHandler.getClass() == Monitor.class)
                 {
                     thread.setName("数据同步-单线程监控-" + count.getAndAdd(1));
                 }

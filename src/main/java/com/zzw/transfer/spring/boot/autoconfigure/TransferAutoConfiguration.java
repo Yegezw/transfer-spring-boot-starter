@@ -46,21 +46,21 @@ public class TransferAutoConfiguration
         MultiSaverWrapper[] multiSaverWrappers = new MultiSaverWrapper[properties.getSaverThreadNum()];
         Arrays.fill(multiSaverWrappers, multiSaverWrapper);
 
-        // 保存监控器
-        SaverMonitor saverMonitor = new SaverMonitor(dispatcher);
+        // 监控器
+        Monitor monitor = new Monitor(dispatcher);
 
         // 消费者
         if (properties.getHandlerThreadNum() == SINGLE)
         {
             SingleHandlerWrapper singleHandlerWrapper = new SingleHandlerWrapper(dispatcher);
-            disruptor.handleEventsWith(singleHandlerWrapper).thenHandleEventsWithWorkerPool(multiSaverWrappers).then(saverMonitor);
+            disruptor.handleEventsWith(singleHandlerWrapper).thenHandleEventsWithWorkerPool(multiSaverWrappers).then(monitor);
         }
         else
         {
             MultiHandlerWrapper   multiHandlerWrapper  = new MultiHandlerWrapper(dispatcher);
             MultiHandlerWrapper[] multiHandlerWrappers = new MultiHandlerWrapper[properties.getHandlerThreadNum()];
             Arrays.fill(multiHandlerWrappers, multiHandlerWrapper);
-            disruptor.handleEventsWithWorkerPool(multiHandlerWrappers).thenHandleEventsWithWorkerPool(multiSaverWrappers).then(saverMonitor);
+            disruptor.handleEventsWithWorkerPool(multiHandlerWrappers).thenHandleEventsWithWorkerPool(multiSaverWrappers).then(monitor);
         }
 
         // 启动

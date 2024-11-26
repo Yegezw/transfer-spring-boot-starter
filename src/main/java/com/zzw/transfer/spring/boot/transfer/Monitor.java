@@ -4,14 +4,14 @@ import com.lmax.disruptor.EventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SaverMonitor implements EventHandler<Bucket>
+public class Monitor implements EventHandler<Bucket>
 {
 
-    private static final Logger log = LoggerFactory.getLogger(SaverMonitor.class);
+    private static final Logger log = LoggerFactory.getLogger(Monitor.class);
 
     private final Dispatcher dispatcher;
 
-    public SaverMonitor(Dispatcher dispatcher)
+    public Monitor(Dispatcher dispatcher)
     {
         this.dispatcher = dispatcher;
     }
