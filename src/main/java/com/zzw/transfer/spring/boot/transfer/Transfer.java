@@ -44,28 +44,39 @@ public abstract class Transfer<S, T>
         if (started.compareAndSet(false, true)) dispatcher.start(getMark());
         else throw new RuntimeException(getMark() + " 已启动, 不可重复启动");
 
-        int bucketSize = getBucketSize();
-
-        Iterable<S>  all        = getDate();
-        ArrayList<S> data       = new ArrayList<>();
-        Bucket       lastBucket = null;
-        for (S source : all)
+        Iterable<S> all = null;
+        try
         {
-            data.add(source);
-            if (data.size() == bucketSize)
-            {
-                lastBucket = publish(data);
-                data       = new ArrayList<>(bucketSize);
-            }
-        }
-        if (!data.isEmpty()) lastBucket = publish(data);
+            int bucketSize = getBucketSize();
 
-        // 虽然是发布完成后才 volatile 设置 lastPublish = ture
-        // 但我不相信 MESI 的同步速度会比 MySQL 的写入速度还慢, 那真是太离谱了
-        // 我甚至觉得 volatile 更新 lastPublish 都没有必要, 但由于每个数据流只设置一次, 并不会有太大损耗, 还是加上吧
-        if (lastBucket != null) lastBucket.setLastPublish();
-        started.set(false);
-        if (all instanceof Closeable c) c.close();
+            all = getData();
+            ArrayList<S> data       = new ArrayList<>();
+            Bucket       lastBucket = null;
+            for (S source : all)
+            {
+                data.add(source);
+                if (data.size() == bucketSize)
+                {
+                    lastBucket = publish(data);
+                    data       = new ArrayList<>(bucketSize);
+                }
+            }
+            if (!data.isEmpty()) lastBucket = publish(data);
+
+            // 虽然是发布完成后才 volatile 设置 lastPublish = ture
+            // 但我不相信 MESI 的同步速度会比 MySQL 的写入速度还慢, 那真是太离谱了
+            // 我甚至觉得 volatile 更新 lastPublish 都没有必要, 但由于每个数据流只设置一次, 并不会有太大损耗, 还是加上吧
+            if (lastBucket != null) lastBucket.setLastPublish();
+        }
+        catch (Exception e)
+        {
+            log.error("{} 启动错误", getMark(), e);
+        }
+        finally
+        {
+            started.set(false);
+            if (all instanceof Closeable c) c.close();
+        }
     }
 
     private Bucket publish(List<S> data)
@@ -90,7 +101,7 @@ public abstract class Transfer<S, T>
 
     protected abstract int getBucketSize();
 
-    protected abstract Iterable<S> getDate();
+    protected abstract Iterable<S> getData();
 
     // ------------------------------------------------
 
