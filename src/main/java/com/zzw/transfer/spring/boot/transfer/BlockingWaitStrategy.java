@@ -12,7 +12,19 @@ import java.util.concurrent.locks.LockSupport;
 public class BlockingWaitStrategy implements WaitStrategy
 {
 
-    private final ConcurrentLinkedQueue<Thread> queue = new ConcurrentLinkedQueue<>();
+    private static class ThreadWrapper
+    {
+        Thread  thread;
+        volatile boolean cancel;
+
+        public ThreadWrapper(Thread thread)
+        {
+            this.thread = thread;
+            this.cancel = false;
+        }
+    }
+
+    private final ConcurrentLinkedQueue<ThreadWrapper> queue = new ConcurrentLinkedQueue<>();
 
     @Override
     public long waitFor(long sequence,
@@ -27,9 +39,17 @@ public class BlockingWaitStrategy implements WaitStrategy
             {
                 barrier.checkAlert();
 
-                Thread thread = Thread.currentThread();
-                queue.offer(thread);
-                LockSupport.park(this);
+                ThreadWrapper wrapper = new ThreadWrapper(Thread.currentThread());
+                queue.offer(wrapper);
+                if (cursor.get() < sequence)
+                {
+                    LockSupport.park(this);
+                }
+                else
+                {
+                    wrapper.cancel = true;
+                    break;
+                }
             }
         }
 
@@ -46,10 +66,10 @@ public class BlockingWaitStrategy implements WaitStrategy
     @Override
     public void signalAllWhenBlocking()
     {
-        Thread thread;
-        while ((thread = queue.poll()) != null)
+        ThreadWrapper wrapper;
+        while ((wrapper = queue.poll()) != null && !wrapper.cancel)
         {
-            LockSupport.unpark(thread);
+            LockSupport.unpark(wrapper.thread);
         }
     }
 }
