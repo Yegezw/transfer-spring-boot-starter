@@ -17,7 +17,7 @@ public class Bucket
     {
     }
 
-    void clear()
+    public void clear()
     {
         data        = null;
         mark        = null;

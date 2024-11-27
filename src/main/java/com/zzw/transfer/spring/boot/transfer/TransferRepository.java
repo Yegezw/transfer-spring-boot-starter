@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("all")
-public class Dispatcher
+public class TransferRepository
 {
 
     private static final double BASE = 1_000_000_000.0;
@@ -18,7 +18,7 @@ public class Dispatcher
     protected final Map<Object, Long>              counter;
     protected final Map<Object, Stopwatch>         stopwatch;
 
-    public Dispatcher(List<Transfer> transferList)
+    public TransferRepository(List<Transfer> transferList)
     {
         Map<Object, Transfer> map = new HashMap<>((int) (transferList.size() / 0.75 + 1));
         counter   = new HashMap<>((int) (transferList.size() / 0.75 + 1));
@@ -33,7 +33,7 @@ public class Dispatcher
         this.immutableMap = ImmutableMap.copyOf(map);
     }
 
-    public Transfer getTransfer(Object mark)
+    public Transfer get(Object mark)
     {
         return immutableMap.get(mark);
     }

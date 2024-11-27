@@ -22,16 +22,16 @@ public abstract class Transfer<S, T>
     private final AtomicBoolean started = new AtomicBoolean(false);
 
     private RingBuffer<Bucket> ringBuffer;
-    private Dispatcher         dispatcher;
+    private TransferRepository transferRepository;
 
     public void setDisruptor(RingBuffer<Bucket> ringBuffer)
     {
         this.ringBuffer = ringBuffer;
     }
 
-    public void setDispatcher(Dispatcher dispatcher)
+    public void setTransferRepository(TransferRepository transferRepository)
     {
-        this.dispatcher = dispatcher;
+        this.transferRepository = transferRepository;
     }
 
     protected abstract Object getMark();
@@ -41,7 +41,7 @@ public abstract class Transfer<S, T>
     @Transactional(readOnly = true)
     public void start() throws IOException
     {
-        if (started.compareAndSet(false, true)) dispatcher.start(getMark());
+        if (started.compareAndSet(false, true)) transferRepository.start(getMark());
         else throw new RuntimeException(getMark() + " 已启动, 不可重复启动");
 
         Iterable<S> all = null;
@@ -106,7 +106,7 @@ public abstract class Transfer<S, T>
     // ------------------------------------------------
 
     @SuppressWarnings("all")
-    final void handle(Bucket bucket)
+    public final void handle(Bucket bucket)
     {
         List data      = bucket.getData();
         List newData   = new ArrayList();
@@ -152,7 +152,7 @@ public abstract class Transfer<S, T>
     // ------------------------------------------------
 
     @SuppressWarnings("all")
-    final void save(Bucket bucket)
+    public final void save(Bucket bucket)
     {
         List data = bucket.getData();
         int  rows = doSave(data);
