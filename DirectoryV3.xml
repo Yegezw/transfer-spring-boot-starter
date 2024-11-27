@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+ <trees>
+     <tree path="/src/main/java/com/zzw/transfer/spring/boot/adapter" title="适配器"/>
+     <tree path="/src/main/java/com/zzw/transfer/spring/boot/adapter/handler" title="处理器"/>
+     <tree path="/src/main/java/com/zzw/transfer/spring/boot/adapter/monitor" title="监控器"/>
+     <tree path="/src/main/java/com/zzw/transfer/spring/boot/adapter/saver" title="保存器"/>
+     <tree path="/src/main/java/com/zzw/transfer/spring/boot/autoconfigure" title="自动配置"/>
+     <tree path="/src/main/java/com/zzw/transfer/spring/boot/transfer" title="转移器" extension="" presentableText=""
+           tooltipTitle="" icon="" textColor="" backgroundColor=""/>
+ </trees>

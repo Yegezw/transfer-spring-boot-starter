@@ -39,7 +39,7 @@ public abstract class Transfer<S, T>
     // ------------------------------------------------
 
     @Transactional(readOnly = true)
-    public void start() throws IOException
+    public void start()
     {
         if (started.compareAndSet(false, true)) transferRepository.start(getMark());
         else throw new RuntimeException(getMark() + " 已启动, 不可重复启动");
@@ -48,22 +48,22 @@ public abstract class Transfer<S, T>
         try
         {
             all = getData();
-            publish(all);
+            if (all != null) publish(all);
+            else log.error("{} 获取数据为 null", getMark());
         }
         catch (Exception e)
         {
-            log.error("{} 启动错误, 获取数据失败", getMark(), e);
+            log.error("{} 获取数据异常", getMark(), e);
         }
         finally
         {
             started.set(false);
-            close(all);
+            if (all != null) close(all);
         }
     }
 
     private void close(Iterable<S> all)
     {
-        if (all == null) return;
         if (all instanceof Closeable)
         {
             Closeable c = (Closeable) all;
@@ -73,18 +73,13 @@ public abstract class Transfer<S, T>
             }
             catch (IOException e)
             {
-                log.error("{} 数据流复发关闭", getMark(), e);
+                log.error("{} 数据流关闭失败", getMark(), e);
             }
         }
     }
 
     private void publish(Iterable<S> all)
     {
-        if (all == null)
-        {
-            log.info("{} 发布数据 {} 条", getMark(), 0);
-            return;
-        }
         int bucketSize = getBucketSize();
 
         ArrayList<S> data1 = new ArrayList<>(bucketSize);
@@ -109,6 +104,7 @@ public abstract class Transfer<S, T>
             }
         }
 
+        if (data1.isEmpty()) return;
         if (data2.isEmpty())
         {
             publish(data1, true);
@@ -122,6 +118,7 @@ public abstract class Transfer<S, T>
 
     private void publish(List<S> data, boolean lastPublish)
     {
+        // caller need make sure data != null && data.size != 0
         final long   sequence = ringBuffer.next();
         final Bucket bucket   = ringBuffer.get(sequence);
         try
@@ -149,9 +146,9 @@ public abstract class Transfer<S, T>
     @SuppressWarnings("all")
     public final void handle(Bucket bucket)
     {
-        List data      = bucket.getData();
-        List newData   = new ArrayList();
-        List errorData = null;
+        List<S>      data      = bucket.getData();
+        List<T>      newData   = new ArrayList<>();
+        List<Object> errorInfo = new ArrayList<>();
 
         for (int i = 0; i < data.size(); i++)
         {
@@ -160,48 +157,59 @@ public abstract class Transfer<S, T>
             try
             {
                 List<T> target = doHandle(source);
-                newData.addAll(target);
+                if (target != null) newData.addAll(target);
             }
             catch (Throwable throwable)
             {
-                if (errorData == null)
-                {
-                    errorData = new ArrayList();
-                }
-                errorData.add(getHandleErrorTrack(source));
+                errorInfo.add(getHandleErrorInfo(source));
             }
         }
 
         bucket.setData(newData);
         if (log.isInfoEnabled())
         {
-            log.info("{} 处理数据 {} 条 -> {} 条, 失败 {} 条", getMark(), data.size(), newData.size(), errorData == null ? 0 : errorData.size());
-        }
-        if (log.isInfoEnabled() && errorData != null && errorData.size() != 0)
-        {
-            log.error("{} 失败数据 {} 条, 追踪信息: {}", getMark(), errorData.size(), errorData);
+            log.info("{} 处理数据 {} 条 -> {} 条, 失败 {} 条", getMark(), data.size(), newData.size(), errorInfo.size());
+            if (!errorInfo.isEmpty())
+            {
+                log.error("{} 失败数据 {} 条, 异常信息: {}", getMark(), errorInfo.size(), errorInfo);
+            }
         }
     }
 
     protected abstract List<T> doHandle(S source);
 
     /**
-     * 获取处理数据异常追踪信息
+     * 获取处理数据异常信息
      */
-    protected abstract Object getHandleErrorTrack(S source);
+    protected abstract Object getHandleErrorInfo(S source);
 
     // ------------------------------------------------
 
     @SuppressWarnings("all")
     public final void save(Bucket bucket)
     {
-        List data = bucket.getData();
-        int  rows = doSave(data);
-        if (log.isInfoEnabled())
+        List<T> data = bucket.getData();
+        try
         {
-            log.info("{} 保存数据 {} 条", getMark(), rows);
+            if (!data.isEmpty())
+            {
+                int rows = doSave(data);
+                if (log.isInfoEnabled())
+                {
+                    log.info("{} 保存数据 {} 条", getMark(), rows);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            saveFail(data);
         }
     }
 
     protected abstract int doSave(List<T> data);
+
+    protected void saveFail(List<T> data)
+    {
+        log.error("{} 保存 {} 条数据失败: {}", getMark(), data.size(), data);
+    }
 }
