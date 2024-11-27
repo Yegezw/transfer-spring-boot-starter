@@ -1,8 +1,5 @@
 package com.zzw.transfer.spring.boot.transfer;
 
-import com.lmax.disruptor.util.Util;
-import sun.misc.Unsafe;
-
 import java.util.List;
 
 @SuppressWarnings("all")
@@ -46,29 +43,11 @@ public class Bucket
 
     public boolean isLastPublish()
     {
-        // 由 MESI 负责同步
-        // 我不相信 MESI 的同步速度会比 MySQL 的写入速度还慢, 那真是太离谱了
         return lastPublish;
     }
 
-    public void setLastPublish()
+    public void setLastPublish(boolean lastPublish)
     {
-        UNSAFE.putBooleanVolatile(this, LAST_PUBLISH_OFFSET, true);
-    }
-
-    private static final Unsafe UNSAFE;
-    private static final long   LAST_PUBLISH_OFFSET;
-
-    static
-    {
-        UNSAFE = Util.getUnsafe();
-        try
-        {
-            LAST_PUBLISH_OFFSET = UNSAFE.objectFieldOffset(Bucket.class.getDeclaredField("lastPublish"));
-        }
-        catch (final Exception e)
-        {
-            throw new RuntimeException(e);
-        }
+        this.lastPublish = lastPublish;
     }
 }

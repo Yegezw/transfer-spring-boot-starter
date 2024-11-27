@@ -47,51 +47,92 @@ public abstract class Transfer<S, T>
         Iterable<S> all = null;
         try
         {
-            int bucketSize = getBucketSize();
-
             all = getData();
-            ArrayList<S> data       = new ArrayList<>();
-            Bucket       lastBucket = null;
-            for (S source : all)
-            {
-                data.add(source);
-                if (data.size() == bucketSize)
-                {
-                    lastBucket = publish(data);
-                    data       = new ArrayList<>(bucketSize);
-                }
-            }
-            if (!data.isEmpty()) lastBucket = publish(data);
-
-            // 虽然是发布完成后才 volatile 设置 lastPublish = ture
-            // 但我不相信 MESI 的同步速度会比 MySQL 的写入速度还慢, 那真是太离谱了
-            // 我甚至觉得 volatile 更新 lastPublish 都没有必要, 但由于每个数据流只设置一次, 并不会有太大损耗, 还是加上吧
-            if (lastBucket != null) lastBucket.setLastPublish();
+            publish(all);
         }
         catch (Exception e)
         {
-            log.error("{} 启动错误", getMark(), e);
+            log.error("{} 启动错误, 获取数据失败", getMark(), e);
         }
         finally
         {
             started.set(false);
-            if (all instanceof Closeable c) c.close();
+            close(all);
         }
     }
 
-    private Bucket publish(List<S> data)
+    private void close(Iterable<S> all)
+    {
+        if (all == null) return;
+        if (all instanceof Closeable)
+        {
+            Closeable c = (Closeable) all;
+            try
+            {
+                c.close();
+            }
+            catch (IOException e)
+            {
+                log.error("{} 数据流复发关闭", getMark(), e);
+            }
+        }
+    }
+
+    private void publish(Iterable<S> all)
+    {
+        if (all == null)
+        {
+            log.info("{} 发布数据 {} 条", getMark(), 0);
+            return;
+        }
+        int bucketSize = getBucketSize();
+
+        ArrayList<S> data1 = new ArrayList<>(bucketSize);
+        ArrayList<S> data2 = new ArrayList<>(bucketSize);
+
+        // data2 满时发布 data1
+        for (S source : all)
+        {
+            if (data1.size() < bucketSize)
+            {
+                data1.add(source);
+            }
+            else if (data2.size() < bucketSize)
+            {
+                data2.add(source);
+                if (data2.size() == bucketSize)
+                {
+                    publish(data1, false);
+                    data1 = data2;
+                    data2 = new ArrayList<>(bucketSize);
+                }
+            }
+        }
+
+        if (data2.isEmpty())
+        {
+            publish(data1, true);
+        }
+        else
+        {
+            publish(data1, false);
+            publish(data2, true);
+        }
+    }
+
+    private void publish(List<S> data, boolean lastPublish)
     {
         final long   sequence = ringBuffer.next();
         final Bucket bucket   = ringBuffer.get(sequence);
         try
         {
-            bucket.setData(data);
             bucket.setMark(getMark());
+            bucket.setData(data);
+            bucket.setLastPublish(lastPublish);
             if (log.isInfoEnabled())
             {
                 log.info("{} 发布数据 {} 条", getMark(), data.size());
             }
-            return bucket;
         }
         finally
         {
