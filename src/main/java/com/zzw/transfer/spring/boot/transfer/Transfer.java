@@ -146,17 +146,23 @@ public abstract class Transfer<S, T>
     @SuppressWarnings("all")
     public final void handle(Bucket bucket)
     {
-        List<S>      data      = bucket.getData();
-        List<T>      newData   = new ArrayList<>();
-        List<Object> errorInfo = new ArrayList<>();
+        boolean      lastPublish = bucket.isLastPublish();
+        List<S>      data        = bucket.getData();
+        List<T>      newData     = new ArrayList<>();
+        List<Object> errorInfo   = new ArrayList<>();
 
+        boolean lastData = false;
         for (int i = 0; i < data.size(); i++)
         {
+            if (lastPublish && i == data.size() - 1)
+            {
+                lastData = true;
+            }
             S source = (S) data.get(i);
             data.set(i, null); // help gc
             try
             {
-                List<T> target = doHandle(source);
+                List<T> target = doHandle(source, lastData);
                 if (target != null) newData.addAll(target);
             }
             catch (Throwable throwable)
@@ -176,7 +182,7 @@ public abstract class Transfer<S, T>
         }
     }
 
-    protected abstract List<T> doHandle(S source);
+    protected abstract List<T> doHandle(S source, boolean lastData);
 
     /**
      * 获取处理数据异常信息
