@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -82,38 +83,27 @@ public abstract class Transfer<S, T>
     {
         int bucketSize = getBucketSize();
 
-        ArrayList<S> data1 = new ArrayList<>(bucketSize);
-        ArrayList<S> data2 = new ArrayList<>(bucketSize);
-
-        // data2 满时发布 data1
-        for (S source : all)
+        Iterator<S>  it   = all.iterator();
+        ArrayList<S> data = new ArrayList<>();
+        while (it.hasNext())
         {
-            if (data1.size() < bucketSize)
+            data.add(it.next());
+            if (data.size() == bucketSize)
             {
-                data1.add(source);
-            }
-            else if (data2.size() < bucketSize)
-            {
-                data2.add(source);
-                if (data2.size() == bucketSize)
+                if (it.hasNext())
                 {
-                    publish(data1, false);
-                    data1 = data2;
-                    data2 = new ArrayList<>(bucketSize);
+                    publish(data, false);
+                    data = new ArrayList<>(bucketSize);
+                }
+                else
+                {
+                    publish(data, true);
+                    data = new ArrayList<>(0);
                 }
             }
         }
 
-        if (data1.isEmpty()) return;
-        if (data2.isEmpty())
-        {
-            publish(data1, true);
-        }
-        else
-        {
-            publish(data1, false);
-            publish(data2, true);
-        }
+        if (!data.isEmpty()) publish(data, true);
     }
 
     private void publish(List<S> data, boolean lastPublish)
