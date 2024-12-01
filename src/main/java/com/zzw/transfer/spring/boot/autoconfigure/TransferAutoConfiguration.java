@@ -12,6 +12,7 @@ import com.zzw.transfer.spring.boot.adapter.handler.SingleThreadHandlerAdapter;
 import com.zzw.transfer.spring.boot.adapter.monitor.SingleThreadMonitorAdapter;
 import com.zzw.transfer.spring.boot.adapter.saver.MultiThreadSaverAdapter;
 import com.zzw.transfer.spring.boot.adapter.saver.SingleThreadSaverAdapter;
+import com.zzw.transfer.spring.boot.listener.TransferListener;
 import com.zzw.transfer.spring.boot.transfer.Bucket;
 import com.zzw.transfer.spring.boot.transfer.Transfer;
 import com.zzw.transfer.spring.boot.transfer.TransferRepository;
@@ -38,13 +39,13 @@ public class TransferAutoConfiguration
 
 
     @Bean
-    public Disruptor<Bucket> disruptor(List<Transfer> transferList)
+    public Disruptor<Bucket> disruptor(List<Transfer> transferList, List<TransferListener> listeners)
     {
         Disruptor<Bucket>         disruptor = getDisruptor();
         EventHandlerGroup<Bucket> group     = null;
 
         // 转移器仓库
-        TransferRepository transferRepository = new TransferRepository(transferList);
+        TransferRepository transferRepository = new TransferRepository(transferList, listeners);
 
         // 1、生产器
         for (Transfer transfer : transferList)

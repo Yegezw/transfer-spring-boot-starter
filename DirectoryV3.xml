@@ -7,4 +7,5 @@
      <tree path="/src/main/java/com/zzw/transfer/spring/boot/autoconfigure" title="自动配置"/>
      <tree path="/src/main/java/com/zzw/transfer/spring/boot/transfer" title="转移器" extension="" presentableText=""
            tooltipTitle="" icon="" textColor="" backgroundColor=""/>
+     <tree path="/src/main/java/com/zzw/transfer/spring/boot/listener" title="观察者"/>
  </trees>

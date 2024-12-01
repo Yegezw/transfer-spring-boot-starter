@@ -2,6 +2,10 @@ package com.zzw.transfer.spring.boot.transfer;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
+import com.zzw.transfer.spring.boot.listener.SimpleTransferEventPublisher;
+import com.zzw.transfer.spring.boot.listener.TransferListener;
+import com.zzw.transfer.spring.boot.listener.TransferStartEvent;
+import com.zzw.transfer.spring.boot.listener.TransferStopEvent;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,11 +18,12 @@ public class TransferRepository
 
     private static final double BASE = 1_000_000_000.0;
 
-    protected final ImmutableMap<Object, Transfer> immutableMap;
-    protected final Map<Object, Long>              counter;
-    protected final Map<Object, Stopwatch>         stopwatch;
+    private final ImmutableMap<Object, Transfer> immutableMap;
+    private final Map<Object, Long>              counter;
+    private final Map<Object, Stopwatch>         stopwatch;
+    private final SimpleTransferEventPublisher   publisher;
 
-    public TransferRepository(List<Transfer> transferList)
+    public TransferRepository(List<Transfer> transferList, List<TransferListener> listeners)
     {
         Map<Object, Transfer> map = new HashMap<>((int) (transferList.size() / 0.75 + 1));
         counter   = new HashMap<>((int) (transferList.size() / 0.75 + 1));
@@ -31,6 +36,8 @@ public class TransferRepository
             stopwatch.put(mark, Stopwatch.createUnstarted());
         }
         this.immutableMap = ImmutableMap.copyOf(map);
+        this.publisher    = new SimpleTransferEventPublisher();
+        publisher.addTransferListener(listeners);
     }
 
     public Transfer get(Object mark)
@@ -57,6 +64,7 @@ public class TransferRepository
 
     public void start(Object mark)
     {
+        publisher.publishEvent(new TransferStartEvent(mark));
         stopwatch.get(mark).reset().start();
     }
 
@@ -64,6 +72,7 @@ public class TransferRepository
     {
         Object mark    = bucket.getMark();
         long   elapsed = stopwatch.get(mark).elapsed(TimeUnit.NANOSECONDS);
+        publisher.publishEvent(new TransferStopEvent(mark));
         return elapsed / BASE;
     }
 }
