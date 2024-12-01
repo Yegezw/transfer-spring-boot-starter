@@ -15,6 +15,7 @@ import com.zzw.transfer.spring.boot.adapter.saver.SingleThreadSaverAdapter;
 import com.zzw.transfer.spring.boot.listener.TransferListener;
 import com.zzw.transfer.spring.boot.transfer.Bucket;
 import com.zzw.transfer.spring.boot.transfer.Transfer;
+import com.zzw.transfer.spring.boot.transfer.TransferChain;
 import com.zzw.transfer.spring.boot.transfer.TransferRepository;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -37,6 +38,12 @@ public class TransferAutoConfiguration
         this.properties = properties;
     }
 
+
+    @Bean
+    public TransferChain transferChain(List<Transfer<?, ?>> transferList)
+    {
+        return new TransferChain(transferList);
+    }
 
     @Bean
     public Disruptor<Bucket> disruptor(List<Transfer> transferList, List<TransferListener> listeners)
