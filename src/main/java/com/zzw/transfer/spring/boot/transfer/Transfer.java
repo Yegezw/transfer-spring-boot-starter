@@ -93,10 +93,12 @@ public abstract class Transfer<S, T> implements Ordered
     {
         int bucketSize = getBucketSize();
 
-        Iterator<S>  it   = all.iterator();
-        ArrayList<S> data = new ArrayList<>();
+        Iterator<S>  it            = all.iterator();
+        ArrayList<S> data          = new ArrayList<>();
+        boolean      emptyIterator = true;
         while (it.hasNext())
         {
+            emptyIterator = false;
             data.add(it.next());
             if (data.size() == bucketSize)
             {
@@ -114,6 +116,7 @@ public abstract class Transfer<S, T> implements Ordered
         }
 
         if (!data.isEmpty()) publish(data, true);
+        if (emptyIterator) publish(data, true);
     }
 
     private void publish(List<S> data, boolean lastPublish)
