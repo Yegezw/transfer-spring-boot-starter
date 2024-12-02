@@ -47,7 +47,7 @@ public class TransferRepository
     public void updateCount(Bucket bucket)
     {
         Object mark = bucket.getMark();
-        counter.put(mark, counter.get(mark) + bucket.getData().size());
+        counter.put(mark, counter.get(mark) + bucket.getNewData().size());
     }
 
     public long getCount(Bucket bucket)

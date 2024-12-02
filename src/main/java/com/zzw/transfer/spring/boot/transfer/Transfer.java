@@ -162,19 +162,18 @@ public abstract class Transfer<S, T> implements Ordered
                 lastData = true;
             }
             S source = data.get(i);
-            data.set(i, null); // help gc
             try
             {
                 List<T> target = doHandle(source, lastData);
                 if (target != null) newData.addAll(target);
             }
-            catch (Throwable throwable)
+            catch (Exception e)
             {
-                errorInfo.add(getHandleErrorInfo(source));
+                errorInfo.add(getHandleErrorInfo(source, e));
             }
         }
 
-        bucket.setData(newData);
+        bucket.setNewData(newData);
         if (log.isInfoEnabled())
         {
             log.info("{} 处理数据 {} 条 -> {} 条, 失败 {} 条", getMark(), data.size(), newData.size(), errorInfo.size());
@@ -190,19 +189,20 @@ public abstract class Transfer<S, T> implements Ordered
     /**
      * 获取处理数据异常信息
      */
-    protected abstract Object getHandleErrorInfo(S source);
+    protected abstract Object getHandleErrorInfo(S source, Exception e);
 
     // ------------------------------------------------
 
     @SuppressWarnings("unchecked")
     public final void save(Bucket bucket)
     {
-        List<T> data = bucket.getData();
+        List<S> data    = bucket.getData();
+        List<T> newData = bucket.getNewData();
         try
         {
-            if (!data.isEmpty())
+            if (!newData.isEmpty())
             {
-                int rows = doSave(data);
+                int rows = doSave(newData);
                 if (log.isInfoEnabled())
                 {
                     log.info("{} 保存数据 {} 条", getMark(), rows);
@@ -211,14 +211,11 @@ public abstract class Transfer<S, T> implements Ordered
         }
         catch (Exception e)
         {
-            saveFail(data);
+            saveFail(data, newData, e);
         }
     }
 
-    protected abstract int doSave(List<T> data);
+    protected abstract int doSave(List<T> newData);
 
-    protected void saveFail(List<T> data)
-    {
-        log.error("{} 保存 {} 条数据失败: {}", getMark(), data.size(), data);
-    }
+    protected abstract void saveFail(List<S> data, List<T> newData, Exception e);
 }

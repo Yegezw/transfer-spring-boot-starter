@@ -7,6 +7,7 @@ public class Bucket
 {
 
     private List    data        = null;
+    private List    newData     = null;
     private Object  mark        = null;
     private boolean lastPublish = false;
 
@@ -17,6 +18,7 @@ public class Bucket
     public void clear()
     {
         data        = null;
+        newData     = null;
         mark        = null;
         lastPublish = false;
     }
@@ -29,6 +31,16 @@ public class Bucket
     public void setData(List data)
     {
         this.data = data;
+    }
+
+    public List getNewData()
+    {
+        return newData;
+    }
+
+    public void setNewData(List newData)
+    {
+        this.newData = newData;
     }
 
     public Object getMark()
