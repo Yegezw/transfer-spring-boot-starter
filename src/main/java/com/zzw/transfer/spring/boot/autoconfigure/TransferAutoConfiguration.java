@@ -24,7 +24,6 @@ import org.springframework.context.annotation.Bean;
 import java.util.Arrays;
 import java.util.List;
 
-@SuppressWarnings("all")
 @AutoConfiguration
 @EnableConfigurationProperties({TransferProperties.class})
 public class TransferAutoConfiguration
@@ -46,16 +45,16 @@ public class TransferAutoConfiguration
     }
 
     @Bean
-    public Disruptor<Bucket> disruptor(List<Transfer> transferList, List<TransferListener> listeners)
+    public Disruptor<Bucket> disruptor(List<Transfer<?, ?>> transferList, List<TransferListener> listeners)
     {
         Disruptor<Bucket>         disruptor = getDisruptor();
-        EventHandlerGroup<Bucket> group     = null;
+        EventHandlerGroup<Bucket> group;
 
         // 转移器仓库
         TransferRepository transferRepository = new TransferRepository(transferList, listeners);
 
         // 1、生产器
-        for (Transfer transfer : transferList)
+        for (Transfer<?, ?> transfer : transferList)
         {
             transfer.setDisruptor(disruptor.getRingBuffer());
             transfer.setTransferRepository(transferRepository);
@@ -110,26 +109,28 @@ public class TransferAutoConfiguration
     }
 
 
-    private static <T> EventHandlerGroup<T> thenSingleThread(Disruptor<T> disruptor, EventHandler<T> eventHandler)
+    private static EventHandlerGroup<Bucket> thenSingleThread(Disruptor<Bucket> disruptor, EventHandler<Bucket> eventHandler)
     {
         return disruptor.handleEventsWith(eventHandler);
     }
 
-    private static <T> EventHandlerGroup<T> thenMultiThread(Disruptor<T> disruptor, WorkHandler<T> workHandler, int threadNum)
+    @SuppressWarnings("unchecked")
+    private static EventHandlerGroup<Bucket> thenMultiThread(Disruptor<Bucket> disruptor, WorkHandler<Bucket> workHandler, int threadNum)
     {
-        WorkHandler[] workHandlers = new WorkHandler[threadNum];
+        WorkHandler<Bucket>[] workHandlers = new WorkHandler[threadNum];
         Arrays.fill(workHandlers, workHandler);
         return disruptor.handleEventsWithWorkerPool(workHandlers);
     }
 
-    private static <T> EventHandlerGroup<T> thenSingleThread(EventHandlerGroup<T> group, EventHandler<T> eventHandler)
+    private static EventHandlerGroup<Bucket> thenSingleThread(EventHandlerGroup<Bucket> group, EventHandler<Bucket> eventHandler)
     {
         return group.handleEventsWith(eventHandler);
     }
 
-    private static <T> EventHandlerGroup<T> thenMultiThread(EventHandlerGroup<T> group, WorkHandler<T> workHandler, int threadNum)
+    @SuppressWarnings("unchecked")
+    private static EventHandlerGroup<Bucket> thenMultiThread(EventHandlerGroup<Bucket> group, WorkHandler<Bucket> workHandler, int threadNum)
     {
-        WorkHandler[] workHandlers = new WorkHandler[threadNum];
+        WorkHandler<Bucket>[] workHandlers = new WorkHandler[threadNum];
         Arrays.fill(workHandlers, workHandler);
         return group.handleEventsWithWorkerPool(workHandlers);
     }

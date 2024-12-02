@@ -146,7 +146,7 @@ public abstract class Transfer<S, T> implements Ordered
 
     // ------------------------------------------------
 
-    @SuppressWarnings("all")
+    @SuppressWarnings("unchecked")
     public final void handle(Bucket bucket)
     {
         boolean      lastPublish = bucket.isLastPublish();
@@ -161,7 +161,7 @@ public abstract class Transfer<S, T> implements Ordered
             {
                 lastData = true;
             }
-            S source = (S) data.get(i);
+            S source = data.get(i);
             data.set(i, null); // help gc
             try
             {
@@ -194,7 +194,7 @@ public abstract class Transfer<S, T> implements Ordered
 
     // ------------------------------------------------
 
-    @SuppressWarnings("all")
+    @SuppressWarnings("unchecked")
     public final void save(Bucket bucket)
     {
         List<T> data = bucket.getData();

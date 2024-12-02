@@ -2,7 +2,7 @@ package com.zzw.transfer.spring.boot.transfer;
 
 import java.util.List;
 
-@SuppressWarnings("all")
+@SuppressWarnings("rawtypes")
 public class Bucket
 {
 

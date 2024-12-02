@@ -12,23 +12,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-@SuppressWarnings("all")
 public class TransferRepository
 {
 
     private static final double BASE = 1_000_000_000.0;
 
-    private final ImmutableMap<Object, Transfer> immutableMap;
-    private final Map<Object, Long>              counter;
-    private final Map<Object, Stopwatch>         stopwatch;
-    private final SimpleTransferEventPublisher   publisher;
+    private final ImmutableMap<Object, Transfer<?, ?>> immutableMap;
+    private final Map<Object, Long>                    counter;
+    private final Map<Object, Stopwatch>               stopwatch;
+    private final SimpleTransferEventPublisher         publisher;
 
-    public TransferRepository(List<Transfer> transferList, List<TransferListener> listeners)
+    public TransferRepository(List<Transfer<?, ?>> transferList, List<TransferListener> listeners)
     {
-        Map<Object, Transfer> map = new HashMap<>((int) (transferList.size() / 0.75 + 1));
+        Map<Object, Transfer<?, ?>> map = new HashMap<>((int) (transferList.size() / 0.75 + 1));
         counter   = new HashMap<>((int) (transferList.size() / 0.75 + 1));
         stopwatch = new HashMap<>((int) (transferList.size() / 0.75 + 1));
-        for (final Transfer transfer : transferList)
+        for (final Transfer<?, ?> transfer : transferList)
         {
             Object mark = transfer.getMark();
             map.put(mark, transfer);
@@ -40,7 +39,7 @@ public class TransferRepository
         publisher.addTransferListener(listeners);
     }
 
-    public Transfer get(Object mark)
+    public Transfer<?, ?> get(Object mark)
     {
         return immutableMap.get(mark);
     }

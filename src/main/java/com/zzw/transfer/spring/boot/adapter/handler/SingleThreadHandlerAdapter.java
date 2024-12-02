@@ -8,7 +8,6 @@ import com.zzw.transfer.spring.boot.transfer.Transfer;
 /**
  * 单线程处理器
  */
-@SuppressWarnings("all")
 public class SingleThreadHandlerAdapter implements EventHandler<Bucket>
 {
 
@@ -20,10 +19,10 @@ public class SingleThreadHandlerAdapter implements EventHandler<Bucket>
     }
 
     @Override
-    public void onEvent(Bucket bucket, long sequence, boolean endOfBatch) throws Exception
+    public void onEvent(Bucket bucket, long sequence, boolean endOfBatch)
     {
-        Object   mark     = bucket.getMark();
-        Transfer transfer = transferRepository.get(mark);
+        Object         mark     = bucket.getMark();
+        Transfer<?, ?> transfer = transferRepository.get(mark);
         transfer.handle(bucket);
     }
 }

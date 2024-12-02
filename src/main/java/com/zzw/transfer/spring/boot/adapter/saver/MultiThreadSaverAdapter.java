@@ -8,7 +8,6 @@ import com.zzw.transfer.spring.boot.transfer.Transfer;
 /**
  * 多线程保存器
  */
-@SuppressWarnings("all")
 public class MultiThreadSaverAdapter implements WorkHandler<Bucket>
 {
 
@@ -22,8 +21,8 @@ public class MultiThreadSaverAdapter implements WorkHandler<Bucket>
     @Override
     public void onEvent(Bucket bucket)
     {
-        Object   mark     = bucket.getMark();
-        Transfer transfer = transferRepository.get(mark);
+        Object         mark     = bucket.getMark();
+        Transfer<?, ?> transfer = transferRepository.get(mark);
         transfer.save(bucket);
     }
 }
