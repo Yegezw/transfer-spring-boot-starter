@@ -218,4 +218,12 @@ public abstract class Transfer<S, T> implements Ordered
     protected abstract int doSave(List<T> newData);
 
     protected abstract void saveFail(List<S> data, List<T> newData, Exception e);
+
+    // ------------------------------------------------
+
+    @Override
+    public String toString()
+    {
+        return getMark().toString();
+    }
 }

@@ -44,6 +44,8 @@ public class TransferRepository
         return immutableMap.get(mark);
     }
 
+    // ------------------------------------------------
+
     public void updateCount(Bucket bucket)
     {
         Object mark = bucket.getMark();
@@ -60,6 +62,8 @@ public class TransferRepository
         Object mark = bucket.getMark();
         counter.put(mark, 0L);
     }
+
+    // ------------------------------------------------
 
     public void start(Object mark)
     {

@@ -54,7 +54,6 @@ public class TransferChain implements TransferListener
         leader.setName("数据同步-单线程发布");
         while (curr != null)
         {
-            intervals();
             boolean success = curr.transfer.start();
             if (success)
             {
@@ -89,21 +88,6 @@ public class TransferChain implements TransferListener
         curr   = head;
     }
 
-    /**
-     * 测试发现让线程稍微停顿一下表现会更好, 但我不知道连接池内部是如何工作的
-     */
-    private void intervals()
-    {
-        try
-        {
-            Thread.sleep(2000);
-        }
-        catch (InterruptedException e)
-        {
-            throw new RuntimeException(e);
-        }
-    }
-
     private static class TransferNode
     {
         Transfer<?, ?> transfer;
@@ -113,5 +97,18 @@ public class TransferChain implements TransferListener
         {
             this.transfer = transfer;
         }
+    }
+
+    @Override
+    public String toString()
+    {
+        StringBuilder sb  = new StringBuilder();
+        TransferNode  cur = head;
+        while (cur != null)
+        {
+            sb.append(cur.transfer).append("\n");
+            cur = cur.next;
+        }
+        return sb.toString();
     }
 }
