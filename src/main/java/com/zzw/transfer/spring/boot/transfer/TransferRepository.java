@@ -1,7 +1,6 @@
 package com.zzw.transfer.spring.boot.transfer;
 
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableMap;
 import com.zzw.transfer.spring.boot.listener.SimpleTransferEventPublisher;
 import com.zzw.transfer.spring.boot.listener.TransferListener;
 import com.zzw.transfer.spring.boot.listener.TransferStartEvent;
@@ -17,31 +16,30 @@ public class TransferRepository
 
     private static final double BASE = 1_000_000_000.0;
 
-    private final ImmutableMap<Object, Transfer<?, ?>> immutableMap;
-    private final Map<Object, Long>                    counter;
-    private final Map<Object, Stopwatch>               stopwatch;
-    private final SimpleTransferEventPublisher         publisher;
+    private final Map<Object, Transfer<?, ?>>  transfer;
+    private final Map<Object, Long>            counter;
+    private final Map<Object, Stopwatch>       stopwatch;
+    private final SimpleTransferEventPublisher publisher;
 
     public TransferRepository(List<Transfer<?, ?>> transferList, List<TransferListener> listeners)
     {
-        Map<Object, Transfer<?, ?>> map = new HashMap<>((int) (transferList.size() / 0.75 + 1));
+        transfer  = new HashMap<>((int) (transferList.size() / 0.75 + 1));
         counter   = new HashMap<>((int) (transferList.size() / 0.75 + 1));
         stopwatch = new HashMap<>((int) (transferList.size() / 0.75 + 1));
-        for (final Transfer<?, ?> transfer : transferList)
+        for (final Transfer<?, ?> t : transferList)
         {
-            Object mark = transfer.getMark();
-            map.put(mark, transfer);
+            Object mark = t.getMark();
+            transfer.put(mark, t);
             counter.put(mark, 0L);
             stopwatch.put(mark, Stopwatch.createUnstarted());
         }
-        this.immutableMap = ImmutableMap.copyOf(map);
-        this.publisher    = new SimpleTransferEventPublisher();
+        publisher = new SimpleTransferEventPublisher();
         publisher.addTransferListener(listeners);
     }
 
     public Transfer<?, ?> get(Object mark)
     {
-        return immutableMap.get(mark);
+        return transfer.get(mark);
     }
 
     // ------------------------------------------------

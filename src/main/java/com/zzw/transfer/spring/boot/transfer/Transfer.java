@@ -36,10 +36,21 @@ public abstract class Transfer<S, T> implements Ordered
         this.transferRepository = transferRepository;
     }
 
+    /**
+     * 获取该转移器的唯一标识
+     *
+     * @return 唯一标识
+     */
     protected abstract Object getMark();
 
     // ------------------------------------------------
 
+    /**
+     * 线程安全的启动
+     *
+     * @return {@code true} 数据发布成功
+     * <br>{@code false} {@link Transfer#getData()} 获取数据异常 / {@link Transfer#getData()} 返回 null
+     */
     @Transactional(readOnly = true)
     public boolean start()
     {
@@ -89,16 +100,25 @@ public abstract class Transfer<S, T> implements Ordered
         }
     }
 
+    /**
+     * 空的迭代器也应该发布一次
+     */
     private void publish(Iterable<S> all)
     {
-        int bucketSize = getBucketSize();
+        Iterator<S> it         = all.iterator();
+        int         bucketSize = getBucketSize();
 
-        Iterator<S>  it            = all.iterator();
-        ArrayList<S> data          = new ArrayList<>();
-        boolean      emptyIterator = true;
+        // 空的迭代器
+        boolean emptyIterator = !(it.hasNext());
+        if (emptyIterator)
+        {
+            publish(new ArrayList<>(0), true);
+            return;
+        }
+
+        ArrayList<S> data = new ArrayList<>(bucketSize);
         while (it.hasNext())
         {
-            emptyIterator = false;
             data.add(it.next());
             if (data.size() == bucketSize)
             {
@@ -114,14 +134,17 @@ public abstract class Transfer<S, T> implements Ordered
                 }
             }
         }
-
         if (!data.isEmpty()) publish(data, true);
-        if (emptyIterator) publish(data, true);
     }
 
+    /**
+     * 调用者需要确保 data != null && data.size != 0, 除非是空的迭代器
+     *
+     * @param data        数据
+     * @param lastPublish 是否为最后一批数据
+     */
     private void publish(List<S> data, boolean lastPublish)
     {
-        // caller need make sure data != null && data.size != 0
         final long   sequence = ringBuffer.next();
         final Bucket bucket   = ringBuffer.get(sequence);
         try
@@ -146,13 +169,30 @@ public abstract class Transfer<S, T> implements Ordered
 
     // ------------------------------------------------
 
+    /**
+     * 空的迭代器也应该处理一次
+     */
     @SuppressWarnings("unchecked")
     public final void handle(Bucket bucket)
     {
         boolean      lastPublish = bucket.isLastPublish();
         List<S>      data        = bucket.getData();
-        List<T>      newData     = new ArrayList<>();
-        List<Object> errorInfo   = new ArrayList<>();
+        List<T>      newData     = new ArrayList<>(data.size());
+        List<Object> errorInfo   = new ArrayList<>(5);
+
+        // 空的迭代器
+        if (data.isEmpty() && lastPublish)
+        {
+            try
+            {
+                List<T> target = doHandle(null, true);
+                if (target != null) newData.addAll(target);
+            }
+            catch (Exception e)
+            {
+                errorInfo.add(getHandleErrorInfo(null, e));
+            }
+        }
 
         boolean lastData = false;
         for (int i = 0; i < data.size(); i++)
@@ -193,6 +233,9 @@ public abstract class Transfer<S, T> implements Ordered
 
     // ------------------------------------------------
 
+    /**
+     * newData 不是空集合才会保存
+     */
     @SuppressWarnings("unchecked")
     public final void save(Bucket bucket)
     {

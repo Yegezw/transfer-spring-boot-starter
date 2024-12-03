@@ -2,7 +2,7 @@ package com.zzw.transfer.spring.boot.transfer;
 
 import com.zzw.transfer.spring.boot.listener.TransferEvent;
 import com.zzw.transfer.spring.boot.listener.TransferListener;
-import com.zzw.transfer.spring.boot.listener.TransferStartEvent;
+import com.zzw.transfer.spring.boot.listener.TransferStopEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,8 +20,7 @@ public class TransferChain implements TransferListener
     private TransferNode head;
     private TransferNode tail;
 
-    private TransferNode curr;
-    private Thread       leader;
+    private Thread thread;
 
     public TransferChain(List<Transfer<?, ?>> transferList)
     {
@@ -35,7 +34,7 @@ public class TransferChain implements TransferListener
     {
         if (tail == null)
         {
-            curr = head = tail = new TransferNode(transfer);
+            head = tail = new TransferNode(transfer);
         }
         else
         {
@@ -43,49 +42,59 @@ public class TransferChain implements TransferListener
         }
     }
 
-    public void start()
+    /**
+     * 线程安全的启动
+     *
+     * @return {@code true} 该链的每个转移器 {@link Transfer#start()} 都启动成功, 且完成入库
+     * <br>{@code false} 该链有任意一个转移器 {@link Transfer#start()} 启动失败
+     */
+    public boolean start()
     {
         if (!started.compareAndSet(false, true))
         {
             throw new RuntimeException("TransferLeader 已启动, 不可重复启动");
         }
 
-        leader = Thread.currentThread();
-        leader.setName("数据同步-单线程发布");
-        while (curr != null)
+        thread = Thread.currentThread();
+        String oldName = thread.getName();
+        thread.setName("数据同步-单线程发布");
+
+        TransferNode run = head;
+        boolean succeed  = true;
+
+        while (run != null)
         {
-            boolean success = curr.transfer.start();
+            boolean success = run.transfer.start();
             if (success)
             {
-                curr = curr.next;
+                run = run.next;
                 LockSupport.park(this);
             }
             else
             {
-                Object mark = curr.transfer.getMark();
+                Object mark = run.transfer.getMark();
+                succeed = false;
                 log.error("{} 启动失败, 链条终止", mark);
                 break;
             }
         }
 
-        reset();
+        thread.setName(oldName);
+        thread = null;
         started.set(false);
+        return succeed;
     }
 
     @Override
     public void onTransferEvent(TransferEvent event)
     {
-        if (event instanceof TransferStartEvent) return;
-        if (leader != null)
+        if (event instanceof TransferStopEvent)
         {
-            LockSupport.unpark(leader);
+            if (thread != null)
+            {
+                LockSupport.unpark(thread);
+            }
         }
-    }
-
-    private void reset()
-    {
-        leader = null;
-        curr   = head;
     }
 
     private static class TransferNode
