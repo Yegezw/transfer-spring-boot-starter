@@ -38,12 +38,6 @@ public class TransferAutoConfiguration
     }
 
 
-    @Bean
-    public TransferChain transferChain(List<Transfer<?, ?>> transferList)
-    {
-        return new TransferChain(transferList);
-    }
-
     @Bean("transferDisruptor")
     public Disruptor<Bucket> disruptor(List<Transfer<?, ?>> transferList, List<TransferListener> listeners)
     {

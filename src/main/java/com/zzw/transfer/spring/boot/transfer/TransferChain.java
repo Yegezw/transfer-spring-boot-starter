@@ -17,20 +17,28 @@ public class TransferChain implements TransferListener
 
     private final AtomicBoolean started = new AtomicBoolean(false);
 
+    private final String chinaName;
+
     private TransferNode head;
     private TransferNode tail;
 
     private Thread thread;
 
-    public TransferChain(List<Transfer<?, ?>> transferList)
+    public TransferChain(String chinaName)
     {
+        this.chinaName = chinaName;
+    }
+
+    public TransferChain(List<Transfer<?, ?>> transferList, String chinaName)
+    {
+        this.chinaName = chinaName;
         for (Transfer<?, ?> transfer : transferList)
         {
             add(transfer);
         }
     }
 
-    public void add(Transfer<?, ?> transfer)
+    public TransferChain add(Transfer<?, ?> transfer)
     {
         if (tail == null)
         {
@@ -40,6 +48,7 @@ public class TransferChain implements TransferListener
         {
             tail = tail.next = new TransferNode(transfer);
         }
+        return this;
     }
 
     /**
@@ -57,10 +66,10 @@ public class TransferChain implements TransferListener
 
         thread = Thread.currentThread();
         String oldName = thread.getName();
-        thread.setName("数据同步-单线程发布");
+        thread.setName("数据同步-单线程发布-" + chinaName);
 
-        TransferNode run = head;
-        boolean succeed  = true;
+        TransferNode run     = head;
+        boolean      succeed = true;
 
         while (run != null)
         {
@@ -111,8 +120,9 @@ public class TransferChain implements TransferListener
     @Override
     public String toString()
     {
-        StringBuilder sb  = new StringBuilder();
-        TransferNode  cur = head;
+        StringBuilder sb = new StringBuilder();
+        sb.append(chinaName).append("\n");
+        TransferNode cur = head;
         while (cur != null)
         {
             sb.append(cur.transfer).append("\n");

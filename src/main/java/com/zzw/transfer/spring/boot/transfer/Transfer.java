@@ -3,7 +3,6 @@ package com.zzw.transfer.spring.boot.transfer;
 import com.lmax.disruptor.RingBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.Ordered;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.Closeable;
@@ -16,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * 转移器: 生产 -> 处理 -> 保存
  */
-public abstract class Transfer<S, T> implements Ordered
+public abstract class Transfer<S, T>
 {
 
     private static final Logger log = LoggerFactory.getLogger(Transfer.class);
