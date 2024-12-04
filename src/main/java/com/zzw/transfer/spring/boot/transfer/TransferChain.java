@@ -22,7 +22,8 @@ public class TransferChain implements TransferListener
     private TransferNode head;
     private TransferNode tail;
 
-    private Thread thread;
+    private TransferNode cur;
+    private Thread       thread;
 
     public TransferChain(String chinaName)
     {
@@ -68,20 +69,20 @@ public class TransferChain implements TransferListener
         String oldName = thread.getName();
         thread.setName("数据同步-单线程发布-" + chinaName);
 
-        TransferNode run     = head;
-        boolean      succeed = true;
+        boolean succeed = true;
 
-        while (run != null)
+        cur = head;
+        while (cur != null)
         {
-            boolean success = run.transfer.start();
+            boolean success = cur.transfer.start();
             if (success)
             {
-                run = run.next;
                 LockSupport.park(this);
+                cur = cur.next;
             }
             else
             {
-                Object mark = run.transfer.getMark();
+                Object mark = cur.transfer.getMark();
                 succeed = false;
                 log.error("{} 启动失败, 链条终止", mark);
                 break;
@@ -90,6 +91,7 @@ public class TransferChain implements TransferListener
 
         thread.setName(oldName);
         thread = null;
+        cur    = null;
         started.set(false);
         return succeed;
     }
@@ -99,7 +101,7 @@ public class TransferChain implements TransferListener
     {
         if (event instanceof TransferStopEvent)
         {
-            if (thread != null)
+            if (thread != null && event.getMark() == cur.transfer.getMark())
             {
                 LockSupport.unpark(thread);
             }

@@ -72,7 +72,7 @@ public class TransferRepository
     public double stop(Bucket bucket)
     {
         Object mark    = bucket.getMark();
-        long   elapsed = stopwatch.get(mark).elapsed(TimeUnit.NANOSECONDS);
+        long   elapsed = stopwatch.get(mark).stop().elapsed(TimeUnit.NANOSECONDS);
         publisher.publishEvent(new TransferStopEvent(mark));
         return elapsed / BASE;
     }
