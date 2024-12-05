@@ -55,10 +55,10 @@ public class TransferChain implements TransferListener
     /**
      * 线程安全的启动
      *
-     * @return {@code true} 该链的每个转移器 {@link Transfer#start()} 都启动成功, 且完成入库
-     * <br>{@code false} 该链有任意一个转移器 {@link Transfer#start()} 启动失败
+     * @return {@code true} 该链的每个转移器 {@link Transfer#start(Object)} 都启动成功, 且完成入库
+     * <br>{@code false} 该链有任意一个转移器 {@link Transfer#start(Object)} 启动失败
      */
-    public boolean start()
+    public boolean start(Object startupParam)
     {
         if (!started.compareAndSet(false, true))
         {
@@ -74,7 +74,7 @@ public class TransferChain implements TransferListener
         cur = head;
         while (cur != null)
         {
-            boolean success = cur.transfer.start();
+            boolean success = cur.start(startupParam);
             if (success)
             {
                 LockSupport.park(this);
@@ -82,7 +82,7 @@ public class TransferChain implements TransferListener
             }
             else
             {
-                Object mark = cur.transfer.getMark();
+                Object mark = cur.getMark();
                 succeed = false;
                 log.error("{} 启动失败, 链条终止", mark);
                 break;
@@ -101,7 +101,7 @@ public class TransferChain implements TransferListener
     {
         if (event instanceof TransferStopEvent)
         {
-            if (thread != null && event.getMark() == cur.transfer.getMark())
+            if (thread != null && event.getMark() == cur.getMark())
             {
                 LockSupport.unpark(thread);
             }
@@ -117,6 +117,22 @@ public class TransferChain implements TransferListener
         {
             this.transfer = transfer;
         }
+
+        public Object getMark()
+        {
+            return transfer.getMark();
+        }
+
+        public boolean start(Object startupParam)
+        {
+            return transfer.start(startupParam);
+        }
+
+        @Override
+        public String toString()
+        {
+            return transfer.toString();
+        }
     }
 
     @Override
@@ -127,7 +143,7 @@ public class TransferChain implements TransferListener
         TransferNode cur = head;
         while (cur != null)
         {
-            sb.append(cur.transfer).append("\n");
+            sb.append(cur).append("\n");
             cur = cur.next;
         }
         return sb.toString();

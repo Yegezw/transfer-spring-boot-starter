@@ -48,10 +48,10 @@ public abstract class Transfer<S, T>
      * 线程安全的启动
      *
      * @return {@code true} 数据发布成功
-     * <br>{@code false} {@link Transfer#getData()} 获取数据异常 / {@link Transfer#getData()} 返回 null
+     * <br>{@code false} {@link Transfer#getData(Object)} 获取数据异常 / {@link Transfer#getData(Object)} 返回 null
      */
     @Transactional(readOnly = true)
-    public boolean start()
+    public boolean start(Object startupParam)
     {
         if (started.compareAndSet(false, true)) transferRepository.start(getMark());
         else throw new RuntimeException(getMark() + " 已启动, 不可重复启动");
@@ -59,7 +59,7 @@ public abstract class Transfer<S, T>
         Iterable<S> all = null;
         try
         {
-            all = getData();
+            all = getData(startupParam);
             if (all != null)
             {
                 publish(all);
@@ -164,7 +164,7 @@ public abstract class Transfer<S, T>
 
     protected abstract int getBucketSize();
 
-    protected abstract Iterable<S> getData();
+    protected abstract Iterable<S> getData(Object startupParam);
 
     // ------------------------------------------------
 
