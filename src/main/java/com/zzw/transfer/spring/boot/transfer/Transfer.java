@@ -48,7 +48,7 @@ public abstract class Transfer<S, T>
      * 线程安全的启动
      *
      * @return {@code true} 数据发布成功
-     * <br>{@code false} {@link Transfer#getData(Object)} 获取数据异常 / {@link Transfer#getData(Object)} 返回 null
+     * <br>{@code false} {@link Transfer#fetchData(Object)} 获取数据异常 / {@link Transfer#fetchData(Object)} 返回 null
      */
     @Transactional
     public boolean start(Object startupParam)
@@ -59,7 +59,7 @@ public abstract class Transfer<S, T>
         Iterable<S> all = null;
         try
         {
-            all = getData(startupParam);
+            all = fetchData(startupParam);
             if (all != null)
             {
                 publish(all);
@@ -164,7 +164,7 @@ public abstract class Transfer<S, T>
 
     protected abstract int getBucketSize();
 
-    protected abstract Iterable<S> getData(Object startupParam);
+    protected abstract Iterable<S> fetchData(Object startupParam);
 
     // ------------------------------------------------
 
@@ -176,7 +176,7 @@ public abstract class Transfer<S, T>
     {
         boolean      lastPublish = bucket.isLastPublish();
         List<S>      data        = bucket.getData();
-        List<T>      newData     = new ArrayList<>(data.size());
+        List<T>      handledData = new ArrayList<>(data.size());
         List<Object> errorInfo   = new ArrayList<>(5);
 
         // 空的迭代器
@@ -185,7 +185,7 @@ public abstract class Transfer<S, T>
             try
             {
                 List<T> target = doHandle(null, true);
-                if (target != null) newData.addAll(target);
+                if (target != null) handledData.addAll(target);
             }
             catch (Exception e)
             {
@@ -204,7 +204,7 @@ public abstract class Transfer<S, T>
             try
             {
                 List<T> target = doHandle(source, lastData);
-                if (target != null) newData.addAll(target);
+                if (target != null) handledData.addAll(target);
             }
             catch (Exception e)
             {
@@ -212,10 +212,10 @@ public abstract class Transfer<S, T>
             }
         }
 
-        bucket.setNewData(newData);
+        bucket.setHandledData(handledData);
         if (log.isInfoEnabled())
         {
-            log.info("{} 处理数据 {} 条 -> {} 条, 失败 {} 条", getMark(), data.size(), newData.size(), errorInfo.size());
+            log.info("{} 处理数据 {} 条 -> {} 条, 失败 {} 条", getMark(), data.size(), handledData.size(), errorInfo.size());
             if (!errorInfo.isEmpty())
             {
                 log.error("{} 失败数据 {} 条, 异常信息: {}", getMark(), errorInfo.size(), errorInfo);
@@ -233,18 +233,18 @@ public abstract class Transfer<S, T>
     // ------------------------------------------------
 
     /**
-     * newData 不是空集合才会保存
+     * handledData 不是空集合才会保存
      */
     @SuppressWarnings("unchecked")
     public final void save(Bucket bucket)
     {
-        List<S> data    = bucket.getData();
-        List<T> newData = bucket.getNewData();
+        List<S> data        = bucket.getData();
+        List<T> handledData = bucket.getHandledData();
         try
         {
-            if (!newData.isEmpty())
+            if (!handledData.isEmpty())
             {
-                int rows = doSave(newData);
+                int rows = doSave(handledData);
                 if (log.isInfoEnabled())
                 {
                     log.info("{} 保存数据 {} 条", getMark(), rows);
@@ -253,13 +253,13 @@ public abstract class Transfer<S, T>
         }
         catch (Exception e)
         {
-            saveFail(data, newData, e);
+            saveFail(data, handledData, e);
         }
     }
 
-    protected abstract int doSave(List<T> newData);
+    protected abstract int doSave(List<T> handledData);
 
-    protected abstract void saveFail(List<S> data, List<T> newData, Exception e);
+    protected abstract void saveFail(List<S> data, List<T> handledData, Exception e);
 
     // ------------------------------------------------
 

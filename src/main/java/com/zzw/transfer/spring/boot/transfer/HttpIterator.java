@@ -17,7 +17,7 @@ public class HttpIterator<E> implements Iterator<E>
             return true;
         }
 
-        List<E> data = getData();
+        List<E> data = fetchData();
         if (data.isEmpty()) return false;
 
         i = data.iterator();
@@ -30,7 +30,7 @@ public class HttpIterator<E> implements Iterator<E>
         return i.next();
     }
 
-    private List<E> getData()
+    private List<E> fetchData()
     {
         // HTTP 获取数据
         // TODO 多线程 ?

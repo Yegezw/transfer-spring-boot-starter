@@ -7,7 +7,7 @@ public class Bucket
 {
 
     private List    data        = null;
-    private List    newData     = null;
+    private List    handledData = null;
     private Object  mark        = null;
     private boolean lastPublish = false;
 
@@ -18,7 +18,7 @@ public class Bucket
     public void clear()
     {
         data        = null;
-        newData     = null;
+        handledData = null;
         mark        = null;
         lastPublish = false;
     }
@@ -33,14 +33,14 @@ public class Bucket
         this.data = data;
     }
 
-    public List getNewData()
+    public List getHandledData()
     {
-        return newData;
+        return handledData;
     }
 
-    public void setNewData(List newData)
+    public void setHandledData(List handledData)
     {
-        this.newData = newData;
+        this.handledData = handledData;
     }
 
     public Object getMark()
