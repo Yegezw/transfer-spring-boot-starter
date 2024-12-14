@@ -7,6 +7,7 @@ import com.zzw.transfer.spring.boot.listener.TransferStartEvent;
 import com.zzw.transfer.spring.boot.listener.TransferStopEvent;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -16,10 +17,10 @@ public class TransferRepository
 
     private static final double BASE = 1_000_000_000.0;
 
-    private final Map<Object, Transfer<?, ?>>  transfer;
-    private final Map<Object, Long>            counter;
-    private final Map<Object, Stopwatch>       stopwatch;
-    private final SimpleTransferEventPublisher publisher;
+    private final Map<Object, Transfer<?, ?>>        transfer;
+    private final Map<Object, Long>                  counter;
+    private final Map<Object, LinkedList<Stopwatch>> stopwatch;
+    private final SimpleTransferEventPublisher       publisher;
 
     public TransferRepository(List<Transfer<?, ?>> transferList, List<TransferListener> listeners)
     {
@@ -31,7 +32,7 @@ public class TransferRepository
             Object mark = t.getMark();
             transfer.put(mark, t);
             counter.put(mark, 0L);
-            stopwatch.put(mark, Stopwatch.createUnstarted());
+            stopwatch.put(mark, new LinkedList<>());
         }
         publisher = new SimpleTransferEventPublisher();
         publisher.addTransferListener(listeners);
@@ -66,13 +67,15 @@ public class TransferRepository
     public void start(Object mark)
     {
         publisher.publishEvent(new TransferStartEvent(mark));
-        stopwatch.get(mark).reset().start();
+        Stopwatch unstarted = Stopwatch.createUnstarted();
+        stopwatch.get(mark).addLast(unstarted);
+        unstarted.start();
     }
 
     public double stop(Bucket bucket)
     {
         Object mark    = bucket.getMark();
-        long   elapsed = stopwatch.get(mark).stop().elapsed(TimeUnit.NANOSECONDS);
+        long   elapsed = stopwatch.get(mark).removeFirst().stop().elapsed(TimeUnit.NANOSECONDS);
         publisher.publishEvent(new TransferStopEvent(mark));
         return elapsed / BASE;
     }
