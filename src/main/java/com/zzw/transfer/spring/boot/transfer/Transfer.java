@@ -50,7 +50,7 @@ public abstract class Transfer<S, T>
      * @return {@code true} 数据发布成功
      * <br>{@code false} {@link Transfer#getData(Object)} 获取数据异常 / {@link Transfer#getData(Object)} 返回 null
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public boolean start(Object startupParam)
     {
         if (started.compareAndSet(false, true)) transferRepository.start(getMark());
