@@ -1,16 +1,15 @@
 package com.zzw.transfer.spring.boot.transfer;
 
+import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * 段迭代器
- */
-public abstract class SegmentIterator<E> implements Iterable<E>, Iterator<E>
+public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>, Closeable
 {
 
     private Iterator<E> it;
@@ -28,31 +27,47 @@ public abstract class SegmentIterator<E> implements Iterable<E>, Iterator<E>
     {
         try
         {
-            // 第一次
+            // 未启动
             if (it == null)
             {
                 start();
-                it = queue.take().iterator();
-                return it.hasNext();
             }
 
-            // 非第一次 + it 有数据
-            if (it.hasNext())
+            // 有数据
+            if (it != null && it.hasNext())
             {
                 return true;
             }
 
-            // 非第一次 + it 无数据
-            if (activeThreadNum.get() == 0)
+            // 无数据
+            List<E> list;
+            for (; ; )
             {
-                return false;
+                list = queue.poll(200L, TimeUnit.MILLISECONDS);
+                if (list != null)
+                {
+                    it = list.iterator();
+                    return true;
+                }
+                else if (activeThreadNum.get() == 0)
+                {
+                    // 必须双重检查, 但不必等待
+                    list = queue.poll();
+                    if (list != null)
+                    {
+                        it = list.iterator();
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
             }
-            it = queue.take().iterator();
-            return it.hasNext();
         }
         catch (InterruptedException e)
         {
-            throw new RuntimeException("SegmentIterator 获取数据期间被中断", e);
+            throw new RuntimeException("MultiThreadIterator 获取数据期间被中断", e);
         }
     }
 
@@ -72,33 +87,34 @@ public abstract class SegmentIterator<E> implements Iterable<E>, Iterator<E>
     private final int           threadNum;
     private final AtomicInteger activeThreadNum;
 
-    public SegmentIterator(int stride, int startIndex, int threadNum, Executor executor)
+    public MultiThreadIterator(int stride, int startIndex, int threadNum, Executor executor)
     {
         this.index           = startIndex;
         this.stride          = stride;
         this.startIndex      = new AtomicInteger(index);
         this.threadNum       = threadNum;
-        this.activeThreadNum = new AtomicInteger(-1);
+        this.activeThreadNum = new AtomicInteger(0);
         this.executor        = executor;
     }
 
     private void start()
     {
-        reset();
         for (int i = 0; i < threadNum; i++)
         {
             executor.execute(new CyclicFetch());
         }
-    }
-
-    private void reset()
-    {
-        startIndex.set(index);
         activeThreadNum.set(threadNum);
     }
 
+    @Override
+    public void close()
+    {
+        it = null;
+        startIndex.set(index);
+    }
+
     /**
-     * 通过 HTTP 获取数据, 无数据时返回 null OR 空集合
+     * 无数据时返回 null OR 空集合
      */
     protected abstract List<E> fetchData(int l, int r);
 
