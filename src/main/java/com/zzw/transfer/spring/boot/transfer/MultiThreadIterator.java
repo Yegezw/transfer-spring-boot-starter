@@ -79,6 +79,15 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
 
     // ------------------------------------------------
 
+    /*
+     * 目前仅支持全量获取 + 多线程竞争不同的 id 段
+     *
+     * 待扩展
+     * 1、获取方式 -> DB? HTTP? MQ?
+     * 2、获取参数 -> 非 id 字段? 个性化获取参数?
+     * 3、获取策略 -> 按需获取以节省内存?
+     */
+
     private final int           index;
     private final int           stride;
     private final AtomicInteger startIndex;
