@@ -14,6 +14,9 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
 
     private Iterator<E> it;
 
+    /**
+     * 无界队列, 可能会内存溢出
+     */
     private final BlockingQueue<List<E>> queue = new LinkedBlockingQueue<>();
 
     @Override
