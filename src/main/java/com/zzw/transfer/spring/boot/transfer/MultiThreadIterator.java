@@ -96,11 +96,11 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
     private final int           threadNum;
     private final AtomicInteger activeThreadNum;
 
-    public MultiThreadIterator(int stride, int startIndex, int threadNum, Executor executor)
+    public MultiThreadIterator(int startIndex, int stride, int threadNum, Executor executor)
     {
         this.index           = startIndex;
-        this.stride          = stride;
         this.startIndex      = new AtomicInteger(index);
+        this.stride          = stride;
         this.threadNum       = threadNum;
         this.activeThreadNum = new AtomicInteger(0);
         this.executor        = executor;
