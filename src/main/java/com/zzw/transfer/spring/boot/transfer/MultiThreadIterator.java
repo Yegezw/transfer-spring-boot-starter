@@ -46,15 +46,9 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
             List<E> list;
             for (; ; )
             {
-                list = queue.poll(200L, TimeUnit.MILLISECONDS);
-                if (list != null)
+                if (activeThreadNum.get() == 0)
                 {
-                    it = list.iterator();
-                    return true;
-                }
-                else if (activeThreadNum.get() == 0)
-                {
-                    // 必须双重检查, 但不必等待
+                    // 不必等待
                     list = queue.poll();
                     if (list != null)
                     {
@@ -64,6 +58,16 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
                     else
                     {
                         return false;
+                    }
+                }
+                else
+                {
+                    // 需要等待
+                    list = queue.poll(200L, TimeUnit.MILLISECONDS);
+                    if (list != null)
+                    {
+                        it = list.iterator();
+                        return true;
                     }
                 }
             }
