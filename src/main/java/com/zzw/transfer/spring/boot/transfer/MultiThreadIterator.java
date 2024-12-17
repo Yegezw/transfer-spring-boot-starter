@@ -14,11 +14,6 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
 
     private Iterator<E> it;
 
-    /**
-     * 无界队列, 可能会内存溢出
-     */
-    private final BlockingQueue<List<E>> queue = new LinkedBlockingQueue<>();
-
     @Override
     public Iterator<E> iterator()
     {
@@ -87,9 +82,7 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
     // ------------------------------------------------
 
     /*
-     * 目前仅支持全量获取 + 多线程竞争不同的 id 段
-     *
-     * 待扩展
+     * 理想的扩展点
      * 1、获取方式 -> DB? HTTP? MQ?
      * 2、获取参数 -> 非 id 字段? 个性化获取参数?
      * 3、获取策略 -> 按需获取以节省内存?
@@ -103,7 +96,14 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
     private final int           threadNum;
     private final AtomicInteger activeThreadNum;
 
+    private final BlockingQueue<List<E>> queue;
+
     public MultiThreadIterator(int startIndex, int stride, int threadNum, Executor executor)
+    {
+        this(startIndex, stride, threadNum, executor, new LinkedBlockingQueue<>());
+    }
+
+    public MultiThreadIterator(int startIndex, int stride, int threadNum, Executor executor, BlockingQueue<List<E>> queue)
     {
         this.index           = startIndex;
         this.startIndex      = new AtomicInteger(index);
@@ -111,7 +111,10 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
         this.threadNum       = threadNum;
         this.activeThreadNum = new AtomicInteger(0);
         this.executor        = executor;
+        this.queue           = queue;
     }
+
+    // ------------------------------------------------
 
     private void start()
     {
@@ -149,7 +152,15 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
                     break; // 不允许添加 null 和 空集合
                 }
 
-                queue.add(data);
+                // queue.add(data);
+                try
+                {
+                    queue.put(data);
+                }
+                catch (InterruptedException e)
+                {
+                    throw new RuntimeException("MultiThreadIterator.CyclicFetch 获取数据期间被中断", e);
+                }
             }
 
             activeThreadNum.getAndAdd(-1);
