@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 转移器: 生产 -> 处理 -> 保存
+ * 转移器: 生产 -> 处理 -> 收集 -> 保存
  */
 public abstract class Transfer<S, T>
 {
@@ -186,6 +186,7 @@ public abstract class Transfer<S, T>
             {
                 List<T> target = doHandle(null, true);
                 if (target != null) handledData.addAll(target);
+                return;
             }
             catch (Exception e)
             {
@@ -229,6 +230,41 @@ public abstract class Transfer<S, T>
      * 获取处理数据异常信息
      */
     protected abstract Object getHandleErrorInfo(S source, Exception e);
+
+    // ------------------------------------------------
+
+    /**
+     * handledData 不是空集合才会收集
+     */
+    @SuppressWarnings("unchecked")
+    public void collect(Bucket bucket)
+    {
+        if (!shouldCollectAfterHandle() || bucket.getHandledData().isEmpty())
+        {
+            return;
+        }
+
+        boolean lastPublish   = bucket.isLastPublish();
+        List<T> handledData   = bucket.getHandledData();
+        List<T> collectedData = new ArrayList<>(1);
+
+        boolean lastData = false;
+        for (int i = 0; i < handledData.size(); i++)
+        {
+            if (lastPublish && i == handledData.size() - 1)
+            {
+                lastData = true;
+            }
+            T       target = handledData.get(i);
+            List<T> sum    = doCollect(target, lastData);
+            if (sum != null) collectedData.addAll(sum);
+        }
+        bucket.setHandledData(collectedData);
+    }
+
+    protected abstract boolean shouldCollectAfterHandle();
+
+    protected abstract List<T> doCollect(T target, boolean lastData);
 
     // ------------------------------------------------
 

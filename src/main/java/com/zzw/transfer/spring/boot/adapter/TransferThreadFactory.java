@@ -1,7 +1,9 @@
 package com.zzw.transfer.spring.boot.adapter;
 
+import com.google.common.collect.ImmutableMap;
 import com.lmax.disruptor.BatchEventProcessor;
 import com.lmax.disruptor.WorkProcessor;
+import com.zzw.transfer.spring.boot.adapter.collector.SingleThreadCollectorAdapter;
 import com.zzw.transfer.spring.boot.adapter.handler.MultiThreadHandlerAdapter;
 import com.zzw.transfer.spring.boot.adapter.handler.SingleThreadHandlerAdapter;
 import com.zzw.transfer.spring.boot.adapter.monitor.SingleThreadMonitorAdapter;
@@ -10,11 +12,19 @@ import com.zzw.transfer.spring.boot.adapter.saver.SingleThreadSaverAdapter;
 import com.zzw.transfer.spring.boot.transfer.Bucket;
 
 import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TransferThreadFactory implements ThreadFactory
 {
+
+    private static final Map<Class<?>, String> THREAD_NAME = ImmutableMap.of(
+            SingleThreadHandlerAdapter.class, "数据同步-单线程处理",
+            SingleThreadCollectorAdapter.class, "数据同步-单线程收集",
+            SingleThreadSaverAdapter.class, "数据同步-单线程保存",
+            SingleThreadMonitorAdapter.class, "数据同步-单线程监控"
+    );
 
     private final AtomicInteger handlerCount = new AtomicInteger(1);
     private final AtomicInteger saverCount   = new AtomicInteger(1);
@@ -48,18 +58,7 @@ public class TransferThreadFactory implements ThreadFactory
     {
         BatchEventProcessor<Bucket> batchEventProcessor = (BatchEventProcessor<Bucket>) r;
         Object                      eventHandler        = EVENT_HANDLER.get(batchEventProcessor);
-        if (eventHandler.getClass() == SingleThreadHandlerAdapter.class)
-        {
-            thread.setName("数据同步-单线程处理");
-        }
-        else if (eventHandler.getClass() == SingleThreadSaverAdapter.class)
-        {
-            thread.setName("数据同步-单线程保存");
-        }
-        else if (eventHandler.getClass() == SingleThreadMonitorAdapter.class)
-        {
-            thread.setName("数据同步-单线程监控");
-        }
+        thread.setName(THREAD_NAME.get(eventHandler.getClass()));
     }
 
     @SuppressWarnings("unchecked")

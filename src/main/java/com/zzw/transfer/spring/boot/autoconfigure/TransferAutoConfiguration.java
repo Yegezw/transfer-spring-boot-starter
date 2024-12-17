@@ -7,6 +7,7 @@ import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.EventHandlerGroup;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.zzw.transfer.spring.boot.adapter.TransferThreadFactory;
+import com.zzw.transfer.spring.boot.adapter.collector.SingleThreadCollectorAdapter;
 import com.zzw.transfer.spring.boot.adapter.handler.MultiThreadHandlerAdapter;
 import com.zzw.transfer.spring.boot.adapter.handler.SingleThreadHandlerAdapter;
 import com.zzw.transfer.spring.boot.adapter.monitor.SingleThreadMonitorAdapter;
@@ -15,7 +16,6 @@ import com.zzw.transfer.spring.boot.adapter.saver.SingleThreadSaverAdapter;
 import com.zzw.transfer.spring.boot.listener.TransferListener;
 import com.zzw.transfer.spring.boot.transfer.Bucket;
 import com.zzw.transfer.spring.boot.transfer.Transfer;
-import com.zzw.transfer.spring.boot.transfer.TransferChain;
 import com.zzw.transfer.spring.boot.transfer.TransferRepository;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -66,7 +66,11 @@ public class TransferAutoConfiguration
             group = thenMultiThread(disruptor, multiThreadHandlerAdapter, properties.getHandlerThreadNum());
         }
 
-        // 3、保存器
+        // 3、收集器
+        SingleThreadCollectorAdapter singleThreadCollectorAdapter = new SingleThreadCollectorAdapter(transferRepository);
+        group = thenSingleThread(group, singleThreadCollectorAdapter);
+
+        // 4、保存器
         if (properties.getSaverThreadNum() == SINGLE)
         {
             SingleThreadSaverAdapter singleThreadSaverAdapter = new SingleThreadSaverAdapter(transferRepository);
@@ -78,7 +82,7 @@ public class TransferAutoConfiguration
             group = thenMultiThread(group, multiThreadSaverAdapter, properties.getSaverThreadNum());
         }
 
-        // 4、监控器
+        // 5、监控器
         SingleThreadMonitorAdapter singleThreadMonitorAdapter = new SingleThreadMonitorAdapter(transferRepository);
         thenSingleThread(group, singleThreadMonitorAdapter);
 
