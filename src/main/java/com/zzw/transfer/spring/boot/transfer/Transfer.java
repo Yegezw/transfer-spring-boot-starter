@@ -186,7 +186,6 @@ public abstract class Transfer<S, T>
             {
                 List<T> target = doHandle(null, true);
                 if (target != null) handledData.addAll(target);
-                return;
             }
             catch (Exception e)
             {
@@ -217,10 +216,10 @@ public abstract class Transfer<S, T>
         if (log.isInfoEnabled())
         {
             log.info("{} 处理数据 {} 条 -> {} 条, 失败 {} 条", getMark(), data.size(), handledData.size(), errorInfo.size());
-            if (!errorInfo.isEmpty())
-            {
-                log.error("{} 失败数据 {} 条, 异常信息: {}", getMark(), errorInfo.size(), errorInfo);
-            }
+        }
+        if (!errorInfo.isEmpty())
+        {
+            log.error("{} 失败数据 {} 条, 异常信息: {}", getMark(), errorInfo.size(), errorInfo);
         }
     }
 
