@@ -17,6 +17,8 @@ public class TransferChain implements TransferListener
 
     private final AtomicBoolean started = new AtomicBoolean(false);
 
+    // ------------------------------------------------
+
     private final String chinaName;
 
     private TransferNode head;
@@ -30,7 +32,7 @@ public class TransferChain implements TransferListener
         this.chinaName = chinaName;
     }
 
-    public TransferChain(List<Transfer<?, ?>> transferList, String chinaName)
+    public TransferChain(String chinaName, List<Transfer<?, ?>> transferList)
     {
         this.chinaName = chinaName;
         for (Transfer<?, ?> transfer : transferList)
@@ -38,6 +40,8 @@ public class TransferChain implements TransferListener
             add(transfer);
         }
     }
+
+    // ------------------------------------------------
 
     public TransferChain add(Transfer<?, ?> transfer)
     {
@@ -107,6 +111,8 @@ public class TransferChain implements TransferListener
             }
         }
     }
+
+    // ------------------------------------------------
 
     private static class TransferNode
     {
