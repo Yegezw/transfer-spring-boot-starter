@@ -174,6 +174,13 @@ public abstract class Transfer<S, T>
     @SuppressWarnings("unchecked")
     public final void handle(Bucket bucket)
     {
+        if (!shouldHandle())
+        {
+            List<S> data = bucket.getData();
+            bucket.setHandledData(data);
+            return;
+        }
+
         boolean      lastPublish = bucket.isLastPublish();
         List<S>      data        = bucket.getData();
         List<T>      handledData = new ArrayList<>(data.size());
@@ -222,6 +229,8 @@ public abstract class Transfer<S, T>
             log.error("{} 失败数据 {} 条, 异常信息: {}", getMark(), errorInfo.size(), errorInfo);
         }
     }
+
+    protected abstract boolean shouldHandle();
 
     protected abstract List<T> doHandle(S source, boolean lastData);
 
