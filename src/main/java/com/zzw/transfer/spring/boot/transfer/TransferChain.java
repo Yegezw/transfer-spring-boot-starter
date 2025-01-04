@@ -66,7 +66,7 @@ public class TransferChain implements TransferListener
     {
         if (!started.compareAndSet(false, true))
         {
-            throw new RuntimeException("TransferLeader 已启动, 不可重复启动");
+            throw new RuntimeException("TransferChain-" + chinaName + " 已启动, 不可重复启动");
         }
 
         thread = Thread.currentThread();

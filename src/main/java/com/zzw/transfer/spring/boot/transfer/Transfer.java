@@ -115,6 +115,7 @@ public abstract class Transfer<S, T>
             return;
         }
 
+        // 非空迭代器
         ArrayList<S> data = new ArrayList<>(bucketSize);
         while (it.hasNext())
         {
@@ -199,23 +200,26 @@ public abstract class Transfer<S, T>
                 errorInfo.add(getHandleErrorInfo(null, e));
             }
         }
-
-        boolean lastData = false;
-        for (int i = 0; i < data.size(); i++)
+        // 非空迭代器
+        else
         {
-            if (lastPublish && i == data.size() - 1)
+            boolean lastData = false;
+            for (int i = 0; i < data.size(); i++)
             {
-                lastData = true;
-            }
-            S source = data.get(i);
-            try
-            {
-                List<T> target = doHandle(source, lastData);
-                if (target != null) handledData.addAll(target);
-            }
-            catch (Exception e)
-            {
-                errorInfo.add(getHandleErrorInfo(source, e));
+                if (lastPublish && i == data.size() - 1)
+                {
+                    lastData = true;
+                }
+                S source = data.get(i);
+                try
+                {
+                    List<T> target = doHandle(source, lastData);
+                    if (target != null) handledData.addAll(target);
+                }
+                catch (Exception e)
+                {
+                    errorInfo.add(getHandleErrorInfo(source, e));
+                }
             }
         }
 
@@ -263,9 +267,9 @@ public abstract class Transfer<S, T>
             {
                 lastData = true;
             }
-            T       target = handledData.get(i);
-            List<T> sum    = doCollect(target, lastData);
-            if (sum != null) collectedData.addAll(sum);
+            T       handled   = handledData.get(i);
+            List<T> collected = doCollect(handled, lastData);
+            if (collected != null) collectedData.addAll(collected);
         }
         bucket.setHandledData(collectedData);
     }
