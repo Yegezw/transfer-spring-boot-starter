@@ -1,6 +1,8 @@
 package com.zzw.transfer.spring.boot.transfer;
 
+import com.google.common.base.Throwables;
 import com.lmax.disruptor.RingBuffer;
+import com.mysql.cj.exceptions.DeadlockTimeoutRollbackMarker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -21,6 +24,11 @@ public abstract class Transfer<S, T>
     private static final Logger log = LoggerFactory.getLogger(Transfer.class);
 
     private final AtomicBoolean started = new AtomicBoolean(false);
+
+    /**
+     * 因为多线程插入产生死锁而导致插入失败的数据
+     */
+    private final ConcurrentLinkedQueue<List<S>> deadlockData = new ConcurrentLinkedQueue<>();
 
     private RingBuffer<Bucket> ringBuffer;
     private TransferRepository transferRepository;
@@ -301,13 +309,35 @@ public abstract class Transfer<S, T>
         }
         catch (Exception e)
         {
-            saveFail(data, handledData, e);
+            bucket.setData(new ArrayList<>(0));
+            bucket.setHandledData(new ArrayList<>(0));
+            Throwable cause = Throwables.getRootCause(e);
+            if (cause instanceof DeadlockTimeoutRollbackMarker) deadlockData.add(data);
+            else saveFail(data, handledData, e);
         }
     }
 
     protected abstract int doSave(List<T> handledData);
 
     protected abstract void saveFail(List<S> data, List<T> handledData, Exception e);
+
+    /**
+     * 非线程安全
+     */
+    public boolean rePublishDeadlockData()
+    {
+        ArrayList<List<S>> data = new ArrayList<>(deadlockData);
+        if (data.isEmpty()) return false;
+
+        deadlockData.clear();
+        transferRepository.start(getMark());
+        for (int i = 0; i < data.size(); i++)
+        {
+            List<S> list = data.get(i);
+            publish(list, i == data.size() - 1);
+        }
+        return true;
+    }
 
     // ------------------------------------------------
 

@@ -82,6 +82,12 @@ public class TransferChain implements TransferListener
             if (success)
             {
                 LockSupport.park(this);
+                while (true)
+                {
+                    boolean has = cur.rePublishDeadlockData();
+                    if (!has) break;
+                    LockSupport.park(this);
+                }
                 cur = cur.next;
             }
             else
@@ -132,6 +138,11 @@ public class TransferChain implements TransferListener
         public boolean start(Object startupParam)
         {
             return transfer.start(startupParam);
+        }
+
+        public boolean rePublishDeadlockData()
+        {
+            return transfer.rePublishDeadlockData();
         }
 
         @Override
