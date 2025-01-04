@@ -41,6 +41,15 @@ public class TransferChain implements TransferListener
         }
     }
 
+    public TransferChain(String chinaName, Transfer<?, ?>... transfer)
+    {
+        this.chinaName = chinaName;
+        for (Transfer<?, ?> t : transfer)
+        {
+            add(t);
+        }
+    }
+
     // ------------------------------------------------
 
     public TransferChain add(Transfer<?, ?> transfer)
