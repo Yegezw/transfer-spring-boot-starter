@@ -1,6 +1,7 @@
 package com.zzw.transfer.spring.boot.transfer;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.Lists;
 import com.lmax.disruptor.RingBuffer;
 import com.mysql.cj.exceptions.DeadlockTimeoutRollbackMarker;
 import org.slf4j.Logger;
@@ -326,11 +327,18 @@ public abstract class Transfer<S, T>
      */
     public boolean rePublishDeadlockData()
     {
-        ArrayList<List<S>> data = new ArrayList<>(deadlockData);
-        if (data.isEmpty()) return false;
+        if (deadlockData.isEmpty()) return false;
+
+        ArrayList<List<S>> temp = new ArrayList<>(deadlockData);
+        ArrayList<List<S>> data = new ArrayList<>(temp.size());
+        for (List<S> list : temp)
+        {
+            data.addAll(Lists.partition(list, 100));
+        }
 
         deadlockData.clear();
         transferRepository.start(getMark());
+
         for (int i = 0; i < data.size(); i++)
         {
             List<S> list = data.get(i);
