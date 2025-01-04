@@ -181,7 +181,7 @@ public abstract class Transfer<S, T>
      * 空的迭代器也应该处理一次
      */
     @SuppressWarnings("unchecked")
-    public final void handle(Bucket bucket)
+    public void handle(Bucket bucket)
     {
         if (!shouldHandle())
         {
@@ -292,7 +292,7 @@ public abstract class Transfer<S, T>
      * handledData 不是空集合才会保存
      */
     @SuppressWarnings("unchecked")
-    public final void save(Bucket bucket)
+    public void save(Bucket bucket)
     {
         List<S> data        = bucket.getData();
         List<T> handledData = bucket.getHandledData();
