@@ -6,6 +6,8 @@ import com.lmax.disruptor.RingBuffer;
 import com.mysql.cj.exceptions.DeadlockTimeoutRollbackMarker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.framework.AopContext;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.Closeable;
@@ -301,7 +303,8 @@ public abstract class Transfer<S, T>
         {
             if (!handledData.isEmpty())
             {
-                int rows = doSave(handledData);
+                Transfer<S, T> proxy = (Transfer<S, T>) AopContext.currentProxy();
+                int            rows  = proxy.doSave(handledData);
                 if (log.isInfoEnabled())
                 {
                     log.info("{} 保存数据 {} 条", getMark(), rows);
@@ -318,6 +321,7 @@ public abstract class Transfer<S, T>
         }
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     protected abstract int doSave(List<T> handledData);
 
     protected abstract void saveFail(List<S> data, List<T> handledData, Exception e);

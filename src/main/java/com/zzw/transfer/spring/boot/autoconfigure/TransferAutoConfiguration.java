@@ -20,12 +20,14 @@ import com.zzw.transfer.spring.boot.transfer.TransferRepository;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 import java.util.Arrays;
 import java.util.List;
 
 @AutoConfiguration
 @EnableConfigurationProperties({TransferProperties.class})
+@EnableAspectJAutoProxy(exposeProxy = true)
 public class TransferAutoConfiguration
 {
 
