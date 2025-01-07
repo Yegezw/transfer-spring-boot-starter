@@ -96,9 +96,8 @@ public abstract class Transfer<S, T>
 
     private void close(Iterable<S> all)
     {
-        if (all instanceof Closeable)
+        if (all instanceof Closeable c)
         {
-            Closeable c = (Closeable) all;
             try
             {
                 c.close();
