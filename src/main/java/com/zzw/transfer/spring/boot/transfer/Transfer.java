@@ -73,7 +73,7 @@ public abstract class Transfer<S, T>
             all = fetchData(startupParam);
             if (all != null)
             {
-                publish(all);
+                publish(all, true);
                 return true;
             }
             else
@@ -112,39 +112,64 @@ public abstract class Transfer<S, T>
     /**
      * 空的迭代器也应该发布一次
      */
-    private void publish(Iterable<S> all)
+    protected void publish(Iterable<S> all, boolean careLastPublish)
     {
         Iterator<S> it         = all.iterator();
         int         bucketSize = getBucketSize();
 
-        // 空的迭代器
         boolean emptyIterator = !(it.hasNext());
-        if (emptyIterator)
+        if (careLastPublish)
         {
-            publish(new ArrayList<>(0), true);
-            return;
-        }
-
-        // 非空迭代器
-        ArrayList<S> data = new ArrayList<>(bucketSize);
-        while (it.hasNext())
-        {
-            data.add(it.next());
-            if (data.size() == bucketSize)
+            // 空的迭代器
+            if (emptyIterator)
             {
-                if (it.hasNext())
+                publish(new ArrayList<>(0), true);
+                return;
+            }
+
+            // 非空迭代器
+            ArrayList<S> data = new ArrayList<>(bucketSize);
+            while (it.hasNext())
+            {
+                data.add(it.next());
+                if (data.size() == bucketSize)
+                {
+                    if (it.hasNext())
+                    {
+                        publish(data, false);
+                        data = new ArrayList<>(bucketSize);
+                    }
+                    else
+                    {
+                        publish(data, true);
+                        data = new ArrayList<>(0);
+                    }
+                }
+            }
+            if (!data.isEmpty()) publish(data, true);
+        }
+        else
+        {
+            // 空的迭代器
+            if (emptyIterator)
+            {
+                publish(new ArrayList<>(0), false);
+                return;
+            }
+
+            // 非空迭代器
+            ArrayList<S> data = new ArrayList<>(bucketSize);
+            while (it.hasNext())
+            {
+                data.add(it.next());
+                if (data.size() == bucketSize)
                 {
                     publish(data, false);
                     data = new ArrayList<>(bucketSize);
                 }
-                else
-                {
-                    publish(data, true);
-                    data = new ArrayList<>(0);
-                }
             }
+            if (!data.isEmpty()) publish(data, false);
         }
-        if (!data.isEmpty()) publish(data, true);
     }
 
     /**
@@ -153,7 +178,7 @@ public abstract class Transfer<S, T>
      * @param data        数据
      * @param lastPublish 是否为最后一批数据
      */
-    private void publish(List<S> data, boolean lastPublish)
+    protected void publish(List<S> data, boolean lastPublish)
     {
         final long   sequence = ringBuffer.next();
         final Bucket bucket   = ringBuffer.get(sequence);
