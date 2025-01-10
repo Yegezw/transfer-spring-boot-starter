@@ -55,6 +55,10 @@ public abstract class Transfer<S, T>
 
     // ------------------------------------------------
 
+    public abstract void postProcessBeforeStart(Object startupParam);
+
+    public abstract void postProcessAfterStart(Object startupParam);
+
     /**
      * 线程安全的启动
      *

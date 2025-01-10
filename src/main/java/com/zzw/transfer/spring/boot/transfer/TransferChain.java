@@ -87,7 +87,7 @@ public class TransferChain implements TransferListener
         cur = head;
         while (cur != null)
         {
-            boolean success = cur.start(startupParam);
+            boolean success = doStart(startupParam);
             if (success)
             {
                 LockSupport.park(this);
@@ -101,9 +101,7 @@ public class TransferChain implements TransferListener
             }
             else
             {
-                Object mark = cur.getMark();
                 succeed = false;
-                log.error("{} 启动失败, 链条终止", mark);
                 break;
             }
         }
@@ -113,6 +111,27 @@ public class TransferChain implements TransferListener
         cur    = null;
         started.set(false);
         return succeed;
+    }
+
+    private boolean doStart(Object startupParam)
+    {
+        boolean success;
+        try
+        {
+            cur.postProcessBeforeStart(startupParam);
+            success = cur.start(startupParam);
+            cur.postProcessAfterStart(startupParam);
+        }
+        catch (Exception e)
+        {
+            log.error("{}-{} 启动失败, 链条终止", chinaName, cur.getMark(), e);
+            return false;
+        }
+        if (!success)
+        {
+            log.error("{}-{} 启动失败, 链条终止", chinaName, cur.getMark());
+        }
+        return success;
     }
 
     @Override
@@ -142,6 +161,16 @@ public class TransferChain implements TransferListener
         public Object getMark()
         {
             return transfer.getMark();
+        }
+
+        public void postProcessBeforeStart(Object startupParam)
+        {
+            transfer.postProcessBeforeStart(startupParam);
+        }
+
+        public void postProcessAfterStart(Object startupParam)
+        {
+            transfer.postProcessAfterStart(startupParam);
         }
 
         public boolean start(Object startupParam)
