@@ -355,7 +355,8 @@ public abstract class Transfer<S, T>
     protected abstract void saveFail(List<S> data, List<T> handledData, Exception e);
 
     /**
-     * 非线程安全
+     * 非线程安全, 用于死锁数据重新发布<br>
+     * 只有数据走过一轮后才能判断是否有死锁数据, 因此该方法不能在 {@link Transfer#start(Object)} 调用
      */
     public boolean rePublishDeadlockData()
     {

@@ -8,12 +8,12 @@ public class TransferProperties
 
     public static final String TRANSFER_PREFIX = "transfer";
 
-
     private static final boolean MULTI_THREAD_WRITE = true;
     private static final int     HANDLER_THREAD_NUM = 1;
     private static final int     SAVER_THREAD_NUM   = 10;
     private static final int     BUFFER_SIZE        = 512;
 
+    // ------------------------------------------------
 
     /**
      * 缓冲区大小, 必须是 2 的幂次
@@ -35,6 +35,7 @@ public class TransferProperties
      */
     private int saverThreadNum = SAVER_THREAD_NUM;
 
+    // ------------------------------------------------
 
     public int getBufferSize()
     {

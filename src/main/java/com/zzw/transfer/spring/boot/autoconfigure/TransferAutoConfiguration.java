@@ -39,6 +39,7 @@ public class TransferAutoConfiguration
         this.properties = properties;
     }
 
+    // ------------------------------------------------
 
     @Bean("transferDisruptor")
     public Disruptor<Bucket> disruptor(List<Transfer<?, ?>> transferList, List<TransferListener> listeners)
@@ -108,6 +109,7 @@ public class TransferAutoConfiguration
         );
     }
 
+    // ------------------------------------------------
 
     private static EventHandlerGroup<Bucket> thenSingleThread(Disruptor<Bucket> disruptor, EventHandler<Bucket> eventHandler)
     {
