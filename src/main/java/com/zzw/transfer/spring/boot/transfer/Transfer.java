@@ -68,6 +68,8 @@ public abstract class Transfer<S, T>
     @Transactional
     public boolean start(Object startupParam)
     {
+        final String className = getRealClassName();
+
         if (started.compareAndSet(false, true)) transferRepository.start(getMark());
         else throw new RuntimeException(getMark() + " 已启动, 不可重复启动");
 
@@ -82,13 +84,13 @@ public abstract class Transfer<S, T>
             }
             else
             {
-                log.error("{} 获取数据为 null", getMark());
+                log.error("{} {} 获取数据为 null", className, getMark());
                 return false;
             }
         }
         catch (Exception e)
         {
-            log.error("{} 获取数据异常", getMark(), e);
+            log.error("{} {} 获取数据异常", className, getMark(), e);
             return false;
         }
         finally
@@ -98,7 +100,7 @@ public abstract class Transfer<S, T>
         }
     }
 
-    private void close(Iterable<S> all)
+    protected void close(Iterable<S> all)
     {
         if (all instanceof Closeable c)
         {
@@ -108,7 +110,7 @@ public abstract class Transfer<S, T>
             }
             catch (IOException e)
             {
-                log.error("{} 数据流关闭失败", getMark(), e);
+                log.error("{} {} 数据流关闭失败", getRealClassName(), getMark(), e);
             }
         }
     }
@@ -193,7 +195,7 @@ public abstract class Transfer<S, T>
             bucket.setLastPublish(lastPublish);
             if (log.isInfoEnabled())
             {
-                log.info("{} 发布数据 {} 条", getMark(), data.size());
+                log.info("{} {} 发布数据 {} 条", getRealClassName(), getMark(), data.size());
             }
         }
         finally
@@ -263,13 +265,14 @@ public abstract class Transfer<S, T>
         }
 
         bucket.setHandledData(handledData);
+        final String className = getRealClassName();
         if (log.isInfoEnabled())
         {
-            log.info("{} 处理数据 {} 条 -> {} 条, 失败 {} 条", getMark(), data.size(), handledData.size(), errorInfo.size());
+            log.info("{} {} 处理数据 {} 条 -> {} 条, 失败 {} 条", className, getMark(), data.size(), handledData.size(), errorInfo.size());
         }
         if (!errorInfo.isEmpty())
         {
-            log.error("{} 失败数据 {} 条, 异常信息: {}", getMark(), errorInfo.size(), errorInfo);
+            log.error("{} {} 失败数据 {} 条, 异常信息: {}", className, getMark(), errorInfo.size(), errorInfo);
         }
     }
 
@@ -335,7 +338,7 @@ public abstract class Transfer<S, T>
                 int            rows  = proxy.doSave(handledData);
                 if (log.isInfoEnabled())
                 {
-                    log.info("{} 保存数据 {} 条", getMark(), rows);
+                    log.info("{} {} 保存数据 {} 条", getRealClassName(), getMark(), rows);
                 }
             }
         }
@@ -344,7 +347,11 @@ public abstract class Transfer<S, T>
             bucket.setData(new ArrayList<>(0));
             bucket.setHandledData(new ArrayList<>(0));
             Throwable cause = Throwables.getRootCause(e);
-            if (cause instanceof DeadlockTimeoutRollbackMarker) deadlockData.add(data);
+            if (cause instanceof DeadlockTimeoutRollbackMarker)
+            {
+                deadlockData.add(data);
+                log.error("{} {} 保存数据 {} 条发生死锁, 当前死锁数据共 {} 条", getRealClassName(), getMark(), handledData.size(), deadlockData.size());
+            }
             else saveFail(data, handledData, e);
         }
     }
@@ -386,5 +393,13 @@ public abstract class Transfer<S, T>
     public String toString()
     {
         return getMark().toString();
+    }
+
+    public String getRealClassName()
+    {
+        // 该类可能被代理, 因此需要截断不必要的代理名称
+        String className = getClass().getSimpleName();
+        int endIndex = className.indexOf('$');
+        return endIndex == -1 ? className : className.substring(0, endIndex);
     }
 }
