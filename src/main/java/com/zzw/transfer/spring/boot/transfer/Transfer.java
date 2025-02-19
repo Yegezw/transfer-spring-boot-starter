@@ -298,9 +298,10 @@ public abstract class Transfer<S, T>
             return;
         }
 
-        boolean lastPublish   = bucket.isLastPublish();
-        List<T> handledData   = bucket.getHandledData();
-        List<T> collectedData = new ArrayList<>(1);
+        boolean         lastPublish   = bucket.isLastPublish();
+        List<T>         handledData   = bucket.getHandledData();
+        List<T>         collectedData = new ArrayList<>(1);
+        List<Exception> errorInfo     = new ArrayList<>(5);
 
         boolean lastData = false;
         for (int i = 0; i < handledData.size(); i++)
@@ -309,11 +310,23 @@ public abstract class Transfer<S, T>
             {
                 lastData = true;
             }
-            T       handled   = handledData.get(i);
-            List<T> collected = doCollect(handled, lastData);
-            if (collected != null) collectedData.addAll(collected);
+            T handled = handledData.get(i);
+            try
+            {
+                List<T> collected = doCollect(handled, lastData);
+                if (collected != null) collectedData.addAll(collected);
+            }
+            catch (Exception e)
+            {
+                errorInfo.add(e);
+            }
         }
+
         bucket.setHandledData(collectedData);
+        if (!errorInfo.isEmpty())
+        {
+            log.error("{} {} 失败数据 {} 条, 异常信息: {}", getRealClassName(), getMark(), errorInfo.size(), errorInfo);
+        }
     }
 
     protected abstract boolean shouldCollectAfterHandle();
