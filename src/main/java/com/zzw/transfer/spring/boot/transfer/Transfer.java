@@ -129,7 +129,7 @@ public abstract class Transfer<S, T>
             // 空的迭代器
             if (emptyIterator)
             {
-                publish(new ArrayList<>(0), true);
+                doPublish(new ArrayList<>(0), true);
                 return;
             }
 
@@ -142,24 +142,24 @@ public abstract class Transfer<S, T>
                 {
                     if (it.hasNext())
                     {
-                        publish(data, false);
+                        doPublish(data, false);
                         data = new ArrayList<>(bucketSize);
                     }
                     else
                     {
-                        publish(data, true);
+                        doPublish(data, true);
                         data = new ArrayList<>(0);
                     }
                 }
             }
-            if (!data.isEmpty()) publish(data, true);
+            if (!data.isEmpty()) doPublish(data, true);
         }
         else
         {
             // 空的迭代器
             if (emptyIterator)
             {
-                publish(new ArrayList<>(0), false);
+                doPublish(new ArrayList<>(0), false);
                 return;
             }
 
@@ -170,11 +170,11 @@ public abstract class Transfer<S, T>
                 data.add(it.next());
                 if (data.size() == bucketSize)
                 {
-                    publish(data, false);
+                    doPublish(data, false);
                     data = new ArrayList<>(bucketSize);
                 }
             }
-            if (!data.isEmpty()) publish(data, false);
+            if (!data.isEmpty()) doPublish(data, false);
         }
     }
 
@@ -184,7 +184,7 @@ public abstract class Transfer<S, T>
      * @param data        数据
      * @param lastPublish 是否为最后一批数据
      */
-    protected void publish(List<S> data, boolean lastPublish)
+    protected void doPublish(List<S> data, boolean lastPublish)
     {
         final long   sequence = ringBuffer.next();
         final Bucket bucket   = ringBuffer.get(sequence);
@@ -382,7 +382,7 @@ public abstract class Transfer<S, T>
         for (int i = 0; i < data.size(); i++)
         {
             List<S> list = data.get(i);
-            publish(list, i == data.size() - 1);
+            doPublish(list, i == data.size() - 1);
         }
         return true;
     }
@@ -399,7 +399,7 @@ public abstract class Transfer<S, T>
     {
         // 该类可能被代理, 因此需要截断不必要的代理名称
         String className = getClass().getSimpleName();
-        int endIndex = className.indexOf('$');
+        int    endIndex  = className.indexOf('$');
         return endIndex == -1 ? className : className.substring(0, endIndex);
     }
 }
