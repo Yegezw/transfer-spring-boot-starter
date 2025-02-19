@@ -25,25 +25,25 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
     {
         try
         {
-            // 未启动
+            // (1) 未启动
             if (it == null)
             {
                 start();
             }
 
-            // 有数据
+            // (3) 有数据
             if (it != null && it.hasNext())
             {
                 return true;
             }
 
-            // 无数据
+            // (2) 无数据
             List<E> list;
             for (; ; )
             {
                 if (activeThreadNum.get() == 0)
                 {
-                    // 不必等待
+                    // (4) 没有线程, 不必等待
                     list = queue.poll();
                     if (list != null)
                     {
@@ -57,7 +57,10 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
                 }
                 else
                 {
-                    // 需要等待
+                    // (2) 还有线程, 需要等待
+                    // 为什么不用 take() 而用 for + poll() ?
+                    // 因为最后一个线程拿到 null / 空集合时, 不会往 queue 中添加数据, take() 就会一直阻塞
+                    // 而 for + poll() 可以在 200 ms 后 for 自旋, 判断是否还有线程在工作, 从而决定是否继续等待
                     list = queue.poll(200L, TimeUnit.MILLISECONDS);
                     if (list != null)
                     {
