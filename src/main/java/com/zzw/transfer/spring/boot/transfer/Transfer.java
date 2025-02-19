@@ -179,6 +179,7 @@ public abstract class Transfer<S, T>
     }
 
     /**
+     * 该方法是线程安全的<br>
      * 调用者需要确保 data != null && data.size != 0, 除非是空的迭代器
      *
      * @param data        数据
@@ -376,7 +377,8 @@ public abstract class Transfer<S, T>
 
     /**
      * 非线程安全, 用于死锁数据重新发布<br>
-     * 只有数据走过一轮后才能判断是否有死锁数据, 因此该方法不能在 {@link Transfer#start(Object)} 调用
+     * 只有数据走过一轮后才能判断是否有死锁数据, 因此该方法不能在 {@link Transfer#start(Object)} 调用<br>
+     * 重新发布期间 {@link Transfer#start(Object)} 也可以执行, 因为 {@link Transfer#doPublish(List, boolean)} 是线程安全的
      */
     public boolean rePublishDeadlockData()
     {
