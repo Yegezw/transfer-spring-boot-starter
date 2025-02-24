@@ -364,7 +364,7 @@ public abstract class Transfer<S, T>
             if (cause instanceof DeadlockTimeoutRollbackMarker)
             {
                 deadlockData.add(data);
-                log.error("{} {} 保存数据 {} 条发生死锁, 当前死锁数据共 {} 条", getRealClassName(), getMark(), handledData.size(), deadlockData.size());
+                log.error("{} {} 保存数据 {} 条发生死锁, 当前死锁数据共 {} 批", getRealClassName(), getMark(), handledData.size(), deadlockData.size());
             }
             else saveFail(data, handledData, e);
         }
