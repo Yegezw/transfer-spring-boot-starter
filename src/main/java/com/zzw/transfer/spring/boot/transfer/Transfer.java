@@ -36,7 +36,7 @@ public abstract class Transfer<S, T>
     private RingBuffer<Bucket> ringBuffer;
     private TransferRepository transferRepository;
 
-    public void setDisruptor(RingBuffer<Bucket> ringBuffer)
+    public void setRingBuffer(RingBuffer<Bucket> ringBuffer)
     {
         this.ringBuffer = ringBuffer;
     }

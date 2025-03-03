@@ -53,7 +53,7 @@ public class TransferAutoConfiguration
         // 1、生产器
         for (Transfer<?, ?> transfer : transferList)
         {
-            transfer.setDisruptor(disruptor.getRingBuffer());
+            transfer.setRingBuffer(disruptor.getRingBuffer());
             transfer.setTransferRepository(transferRepository);
         }
 
