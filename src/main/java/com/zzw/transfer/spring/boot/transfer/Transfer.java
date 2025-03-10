@@ -113,6 +113,17 @@ public abstract class Transfer<S, T>
                 log.error("{} {} 数据流关闭失败", getRealClassName(), getMark(), e);
             }
         }
+        else if (all instanceof AutoCloseable ac)
+        {
+            try
+            {
+                ac.close();
+            }
+            catch (Exception e)
+            {
+                log.error("{} {} 资源关闭失败", getRealClassName(), getMark(), e);
+            }
+        }
     }
 
     /**
@@ -385,10 +396,12 @@ public abstract class Transfer<S, T>
         if (deadlockData.isEmpty()) return false;
 
         ArrayList<List<S>> temp = new ArrayList<>(deadlockData);
-        ArrayList<List<S>> data = new ArrayList<>(temp.size());
+        ArrayList<List<S>> data = new ArrayList<>(temp.size() * 2);
+
+        int dynamicSize = Math.max(1, getBucketSize() / 2);
         for (List<S> list : temp)
         {
-            data.addAll(Lists.partition(list, 100));
+            data.addAll(Lists.partition(list, dynamicSize));
         }
 
         deadlockData.clear();
