@@ -1,13 +1,15 @@
 package com.zzw.transfer.spring.boot.transfer;
 
+import org.jctools.queues.MessagePassingQueue;
+import org.jctools.queues.MpscArrayQueue;
+
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>, Closeable
 {
@@ -23,56 +25,51 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
     @Override
     public boolean hasNext()
     {
-        try
+        // (1) 未启动
+        if (it == null)
         {
-            // (1) 未启动
-            if (it == null)
-            {
-                start();
-            }
+            start();
+        }
 
-            // (3) 有数据
-            if (it != null && it.hasNext())
-            {
-                return true;
-            }
+        // (3) 有数据
+        if (it != null && it.hasNext())
+        {
+            return true;
+        }
 
-            // (2) 无数据
-            List<E> list;
-            for (; ; )
+        // (2) 无数据
+        List<E> list;
+        for (; ; )
+        {
+            if (activeThreadNum.get() == 0)
             {
-                if (activeThreadNum.get() == 0)
+                // (4) 没有线程, 不必等待
+                list = queue.poll();
+                if (list != null)
                 {
-                    // (4) 没有线程, 不必等待
-                    list = queue.poll();
-                    if (list != null)
-                    {
-                        it = list.iterator();
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
+                    it = list.iterator();
+                    return true;
                 }
                 else
                 {
-                    // (2) 还有线程, 需要等待
-                    // 为什么不用 take() 而用 for + poll() ?
-                    // 因为最后一个线程拿到 null / 空集合时, 不会往 queue 中添加数据, take() 就会一直阻塞
-                    // 而 for + poll() 可以在 200 ms 后 for 自旋, 判断是否还有线程在工作, 从而决定是否继续等待
-                    list = queue.poll(200L, TimeUnit.MILLISECONDS);
-                    if (list != null)
-                    {
-                        it = list.iterator();
-                        return true;
-                    }
+                    return false;
                 }
             }
-        }
-        catch (InterruptedException e)
-        {
-            throw new RuntimeException("MultiThreadIterator 获取数据期间被中断", e);
+            else
+            {
+                // (2) 还有线程, 需要等待
+                // 为什么不用 take() 而用 for + poll() ?
+                // 因为最后一个线程拿到 null / 空集合时, 不会往 queue 中添加数据, take() 就会一直阻塞
+                // 而 for + poll() 可以在 200 ms 后 for 自旋, 判断是否还有线程在工作, 从而决定是否继续等待
+                list = queue.poll();
+                if (list != null)
+                {
+                    it = list.iterator();
+                    return true;
+                }
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(200));
+                if (Thread.interrupted()) throw new RuntimeException(new InterruptedException());
+            }
         }
     }
 
@@ -99,14 +96,14 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
     private final int           threadNum;
     private final AtomicInteger activeThreadNum;
 
-    private final BlockingQueue<List<E>> queue;
+    private final MessagePassingQueue<List<E>> queue;
 
     public MultiThreadIterator(int startIndex, int stride, int threadNum, Executor executor)
     {
-        this(startIndex, stride, threadNum, executor, new LinkedBlockingQueue<>());
+        this(startIndex, stride, threadNum, executor, 1024);
     }
 
-    public MultiThreadIterator(int startIndex, int stride, int threadNum, Executor executor, BlockingQueue<List<E>> queue)
+    public MultiThreadIterator(int startIndex, int stride, int threadNum, Executor executor, int capacity)
     {
         this.index           = startIndex;
         this.startIndex      = new AtomicInteger(index);
@@ -114,7 +111,7 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
         this.threadNum       = threadNum;
         this.activeThreadNum = new AtomicInteger(0);
         this.executor        = executor;
-        this.queue           = queue; // TODO jctools.MPSCQueue ?
+        this.queue           = new MpscArrayQueue<>(capacity);
     }
 
     // ------------------------------------------------
@@ -155,18 +152,12 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
                     break; // 不允许添加 null 和 空集合
                 }
 
-                // queue.add(data);
-                try
+                while (!queue.offer(data))
                 {
-                    queue.put(data);
-                }
-                catch (InterruptedException e)
-                {
-                    throw new RuntimeException("MultiThreadIterator.CyclicFetch 获取数据期间被中断", e);
+                    Thread.yield();
                 }
             }
-
-            activeThreadNum.getAndAdd(-1);
+            activeThreadNum.getAndDecrement();
         }
     }
 }
