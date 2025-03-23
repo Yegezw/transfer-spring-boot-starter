@@ -40,6 +40,12 @@
             <artifactId>disruptor</artifactId>
             <version>3.4.4</version>
         </dependency>
+        <!--jctools-->
+        <dependency>
+            <groupId>org.jctools</groupId>
+            <artifactId>jctools-core</artifactId>
+            <version>4.0.5</version>
+        </dependency>
         <!--guava-->
         <dependency>
             <groupId>com.google.guava</groupId>

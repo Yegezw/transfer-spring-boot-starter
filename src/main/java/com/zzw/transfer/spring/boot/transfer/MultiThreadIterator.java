@@ -114,7 +114,7 @@ public abstract class MultiThreadIterator<E> implements Iterable<E>, Iterator<E>
         this.threadNum       = threadNum;
         this.activeThreadNum = new AtomicInteger(0);
         this.executor        = executor;
-        this.queue           = queue;
+        this.queue           = queue; // TODO jctools.MPSCQueue ?
     }
 
     // ------------------------------------------------
