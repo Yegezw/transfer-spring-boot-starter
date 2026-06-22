@@ -1,4 +1,4 @@
-package com.zzw.transfer.spring.boot.transfer;
+package com.zzw.transfer.spring.boot.other;
 
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;

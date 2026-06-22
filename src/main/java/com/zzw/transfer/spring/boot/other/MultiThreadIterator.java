@@ -1,4 +1,4 @@
-package com.zzw.transfer.spring.boot.transfer;
+package com.zzw.transfer.spring.boot.other;
 
 import org.jctools.queues.MessagePassingQueue;
 import org.jctools.queues.MpscArrayQueue;
